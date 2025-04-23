@@ -1,6 +1,5 @@
 streamlit
 geemap
-earthengine-api
 streamlit-folium
 ee
 geojson
