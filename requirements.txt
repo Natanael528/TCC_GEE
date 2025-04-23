@@ -6,3 +6,7 @@ ee
 geojson
 folium
 geopandas
+pandas
+plotly
+
+
