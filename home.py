@@ -3,9 +3,6 @@ import ee
 import geemap.foliumap as geemap 
 from streamlit_folium import folium_static
 
-# Inicializa GEE
-ee.Initialize(project='d2021028876')
-
 st.set_page_config(layout='wide',
                    page_title='Chuva GEE',
                    initial_sidebar_state='expanded',
