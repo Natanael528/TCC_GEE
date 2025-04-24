@@ -5,4 +5,5 @@ plotly
 geopandas
 googlemaps
 earthengine-api
+geemap
 
