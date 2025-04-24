@@ -7,6 +7,8 @@ service_account_info = dict(st.secrets["earthengine"])
 credentials = ee.ServiceAccountCredentials(service_account_info["client_email"], service_account_info)
 ee.Initialize(credentials)
 
+
+
 st.set_page_config(layout='wide',
                    page_title='Chuva GEE',
                    initial_sidebar_state='expanded',
