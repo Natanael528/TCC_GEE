@@ -6,4 +6,5 @@ geopandas
 googlemaps
 earthengine-api
 geemap
+streamlit_folium
 
