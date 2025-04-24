@@ -2,5 +2,6 @@ streamlit
 folium
 pandas
 plotly
-ee
+geopandas
+googlemaps
 
