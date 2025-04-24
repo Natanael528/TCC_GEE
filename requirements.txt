@@ -2,5 +2,5 @@ streamlit
 folium
 pandas
 plotly
-
+ee
 
