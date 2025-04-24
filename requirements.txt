@@ -4,4 +4,5 @@ pandas
 plotly
 geopandas
 googlemaps
+earthengine-api
 
