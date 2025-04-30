@@ -2,15 +2,18 @@ import streamlit as st
 import ee
 import geemap.foliumap as geemap 
 from streamlit_folium import folium_static
+import json
+import tempfile
 
-service_account_info = st.secrets["earthengine"]
-credentials = ee.ServiceAccountCredentials(
-    service_account_info["client_email"],
-    service_account_info
-)
-ee.Initialize(credentials)
+# Cria arquivo temporário com as credenciais
+service_account_info = dict(st.secrets["earthengine"])
 
-
+with tempfile.NamedTemporaryFile(mode='w+', suffix='.json', delete=False) as f:
+    json.dump(service_account_info, f)
+    f.flush()
+    credentials = ee.ServiceAccountCredentials(service_account_info["client_email"], f.name)
+    ee.Initialize(credentials)
+    
 st.set_page_config(layout='wide',
                    page_title='Chuva GEE',
                    initial_sidebar_state='expanded',

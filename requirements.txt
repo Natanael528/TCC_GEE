@@ -8,3 +8,5 @@ earthengine-api
 geemap
 streamlit_folium
 setuptools
+jason
+tempfile
