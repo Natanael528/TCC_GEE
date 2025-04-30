@@ -2,6 +2,7 @@ import streamlit as st
 import ee
 import geemap.foliumap as geemap 
 from streamlit_folium import folium_static
+from datetime import date, timedelta
 import json
 import tempfile
 
@@ -24,10 +25,21 @@ st.markdown("teste streamlit com o GEE")
 
 st.sidebar.title('Menu')
 
+datain = st.sidebar.date_input("Data Inicial", max_value = date(2025, month=1, day=1))
+datafi = st.sidebar.date_input("Data Final")
+
+# Converte as datas para strings no formato 'YYYY-MM-DD'
+datain_str = datain.strftime('%Y-%m-%d')
+datafi_str = datafi.strftime('%Y-%m-%d')
+
 # Carrega dados CHIRPS
 chirps = ee.ImageCollection('UCSB-CHG/CHIRPS/DAILY') \
            .select('precipitation') \
-           .filterDate('2024-02-28', '2025-02-28')
+           .filterDate(datain_str, datafi_str)
+           
+           
+
+
 
 # Paleta de cores
 vis = {
@@ -39,10 +51,7 @@ vis = {
 }
 
 # Cria o mapa
-Map = geemap.Map()
+Map = geemap.Map(center=[-19, -60], zoom=4, tiles='cartodbdark_matter')
 Map.addLayer(chirps.sum(), vis, 'Precipitação - 2024')
-Map.add_colorbar(vis, label='Precipitação [mm/ano]')
-
-
-# Mostra no Streamlit
-folium_static(Map, width=1200, height=700)
+Map.add_colorbar(vis, label='Precipitação [mm/ano]', position='bottom')
+Map.to_streamlit(width=1500, height=700)
