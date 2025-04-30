@@ -7,4 +7,3 @@ earthengine-api
 geemap
 streamlit_folium
 jason
-tempfile
