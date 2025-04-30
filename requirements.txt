@@ -3,10 +3,8 @@ folium
 pandas
 plotly
 geopandas
-googlemaps
 earthengine-api
 geemap
 streamlit_folium
-setuptools
 jason
 tempfile
