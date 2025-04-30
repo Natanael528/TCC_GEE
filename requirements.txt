@@ -7,4 +7,4 @@ googlemaps
 earthengine-api
 geemap
 streamlit_folium
-
+setuptools
