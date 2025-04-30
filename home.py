@@ -3,10 +3,12 @@ import ee
 import geemap.foliumap as geemap 
 from streamlit_folium import folium_static
 
-service_account_info = dict(st.secrets["earthengine"])
-credentials = ee.ServiceAccountCredentials(service_account_info["client_email"], service_account_info)
+service_account_info = st.secrets["earthengine"]
+credentials = ee.ServiceAccountCredentials(
+    service_account_info["client_email"],
+    service_account_info
+)
 ee.Initialize(credentials)
-
 
 
 st.set_page_config(layout='wide',
