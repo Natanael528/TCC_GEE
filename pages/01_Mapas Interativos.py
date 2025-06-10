@@ -23,6 +23,9 @@ st.set_page_config(layout='wide',
                    page_icon='🌧️')
 
 
+with open('TCC_GEE/style.css')as f:
+    st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html = True)
+
 st.sidebar.title('Menu')
 
 datafi = st.sidebar.date_input("Data", max_value= date.today() -  timedelta(days=2))
