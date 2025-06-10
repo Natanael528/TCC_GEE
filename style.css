@@ -15,7 +15,7 @@
 }
 
 /*####alterar cor do background da barra lateral######*/
-.st-emotion-cache-6qob1r { /*altera aki caso o site mudar novamente*/
+.st-emotion-cache-jx6q2s { /*altera aki caso o site mudar novamente*/
     background: linear-gradient(90deg, rgb(0 0 0) 5%, rgb(14, 17, 23) 99.94%) !important;
 }
 /* .st-emotion-cache-h4xjwg {
@@ -33,7 +33,7 @@
 
 
 /* ##### Background da página ####### */
-.st-emotion-cache-jx6q2s {
+.st-emotion-cache-13k62yr {
     position: absolute;
     background: rgb(14, 17, 23);
     color: #fff;
