@@ -30,6 +30,8 @@ with open('TCC_GEE/style.css')as f:
     st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html = True)
 
 
-st.sidebar.title('Menu')
-
-
+st.title('Análise de Dados de Chuva com Google Earth Engine')
+st.markdown("""
+    Este aplicativo permite visualizar dados de precipitação utilizando o Google Earth Engine. 
+    Você pode selecionar uma região de interesse e um período para analisar os dados de chuva.
+""")            
