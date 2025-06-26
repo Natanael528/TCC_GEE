@@ -23,7 +23,7 @@ st.set_page_config(layout='wide',
                    page_icon='🌧️')
 
 
-with open('style.css')as f:
+with open('TCC_GEE/style.css')as f:
     st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html = True)
 
 st.sidebar.title('Menu')
@@ -32,9 +32,10 @@ st.sidebar.title('Menu')
 
 
 genre = st.sidebar.radio(
-    "Escolha o acomulado de precipitação:",
-    ["***Diário***", "***Mensal***", "***Anual***"],
+    "Escolha a opção de precipitação:",
+    ["***Instantâneo***","***Diário***", "***Mensal***", "***Anual***"],
     captions=[
+        "Última imagem fornecida.",
         "Acumulado diário.",
         "Acumulado mensal.",
         "Acumulado anual.",
@@ -42,11 +43,11 @@ genre = st.sidebar.radio(
 )
 
 if genre == "***Diário***":
-    st.write("Você selecionou o acumulado diário.")
+    
     # --- Barra Lateral ---
     st.sidebar.header("Filtros")
 
-    datafi = st.sidebar.date_input("Data", max_value= date.today() -  timedelta(days=0))
+    datafi = st.sidebar.date_input("Data", max_value= date.today() -  timedelta(days=1))
 
 
     # # Converte as datas para strings no formato 'YYYY-MM-DD'
@@ -54,32 +55,38 @@ if genre == "***Diário***":
 
     datain_str = datain_str.strftime('%Y-%m-%d')
     datafi_str = datafi.strftime('%Y-%m-%d')
-
+    
+    st.write("Você selecionou o acumulado diário para o dia **{}**".format(datafi_str))
 
     # Carrega o dataset GPM
     dataset = ee.ImageCollection('NASA/GPM_L3/IMERG_V07') \
         .filter(ee.Filter.date(datain_str, datafi_str))
         
 
+    
+    
     # Seleciona a taxa de precipitação horária
     precipitation = dataset.select('precipitation')
 
     # Configura a visualização
     precipitationVis = {
         'min': 1,
-        'max': 150.0,
+        'max': 100.0,
         'palette': ['1621a2','03ffff', '13ff03', 'efff00', 'ffb103', 'ff2300']}
 
+
+    #st.write("Precipitação média no ponto selecionado: {:.2f} mm/h".format(precipitation.get('precipitation').getInfo()))
     # Cria o mapa
     Map = geemap.Map(center=[-19, -60], zoom=4, tiles='cartodbdark_matter')
     Map.addLayer(precipitation.sum().updateMask(precipitation.sum().gt(0.5)), precipitationVis, 'Precipitação Horária', opacity=1)
 
-    Map.add_colorbar(precipitationVis, background_color='white', step= 20, label='Precipitação [mm/h]')
+    Map.add_colorbar(precipitationVis, background_color='white', step= 20, label='Precipitação [mm/dia]')
     Map.to_streamlit(width=1820, height=900)
+    
 
 elif genre == "***Mensal***":
     
-    st.write("Você selecionou o acumulado mensal.")
+    
 
     # --- Barra Lateral ---
     st.sidebar.header("Filtros")
@@ -100,6 +107,8 @@ elif genre == "***Mensal***":
     # Converte o nome do mês para número (1 a 12)
     mes_num = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", 
             "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"].index(mes_nome) + 1
+    
+    st.write("Você selecionou o acumulado mensal.  **{}** de **{}**".format(mes_nome, ano))
 
     # Usa a abordagem robusta do GEE para definir o período
     start_date = ee.Date.fromYMD(ano, mes_num, 1)
@@ -110,13 +119,17 @@ elif genre == "***Mensal***":
         .filterDate(start_date, end_date)
         
     # Seleciona a banda de precipitação e calcula o acumulado mensal para todo o globo
-    # O método .clip() foi removido
-    monthly_precipitation = dataset.select('precipitation').sum()
 
+    # transforma de mm/h para mm/0.5h
+    imerge_mes = dataset.map(lambda img: img.multiply(0.5).copyProperties(img, img.propertyNames()))
+    
+    # soma a chuva do mês, ficando a unidade em mm/mês
+    imerge_mes = imerge_mes.select('precipitation').sum()
+    
     # Ajusta a escala para um acumulado mensal em mm
     precipitationVis = {
-        'min': 10.0,
-        'max': 700.0, # Um valor máximo realista para chuvas mensais
+        'min': 50.0,
+        'max': 400.0, # Um valor máximo realista para chuvas mensais
         'palette': ['1621a2','03ffff', '13ff03', 'efff00', 'ffb103', 'ff2300']
     }
 
@@ -125,7 +138,7 @@ elif genre == "***Mensal***":
 
     # Adiciona a camada de precipitação mensal
     Map.addLayer(
-        monthly_precipitation.updateMask(monthly_precipitation.gt(10)), 
+        imerge_mes.updateMask(imerge_mes.gt(50)),  # Máscara para mostrar apenas áreas com mais de 50mm
         precipitationVis, 
         f'Precipitação {mes_nome}/{ano}'
     )
@@ -133,16 +146,16 @@ elif genre == "***Mensal***":
     # Adiciona a legenda com o rótulo e unidade corretos
     Map.add_colorbar(
         precipitationVis, 
-        label='Precipitação Acumulada [mm]', 
+        label='Precipitação Acumulada [mm/mês]', 
         orientation='vertical', 
         layer_name=f'Precipitação {mes_nome}/{ano}',
         background_color='white'
     )
     Map.to_streamlit(width=1820, height=900)
     
-else:
+elif genre == "***Anual***":
 
-    st.write("Você selecionou o acumulado anual, focado no Brasil.")
+    
 
     # --- Barra Lateral ---
     st.sidebar.header("Filtros")
@@ -161,6 +174,8 @@ else:
     # Converte as datas para strings no formato 'YYYY-MM-DD' para o filtro do GEE
     datain_str = datain.strftime('%Y-%m-%d')
     datafi_str = datafi.strftime('%Y-%m-%d')
+
+    st.write("Você selecionou o acumulado anual, focado no Brasil para o ano de **{}**".format(ano))
 
     # **NOVA ETAPA:** Carrega os limites dos países e filtra para obter o Brasil
     countries = ee.FeatureCollection('USDOS/LSIB_SIMPLE/2017')
@@ -200,10 +215,43 @@ else:
     # Adiciona a legenda com o rótulo e unidade corretos
     Map.add_colorbar(
         precipitationVis, 
-        label='Precipitação Acumulada [mm]', 
+        label='Precipitação Acumulada [mm/ano]', 
         orientation='vertical', 
         layer_name=f'Precipitação Acumulada {ano} - Brasil',
         background_color='white'
     )
     Map.to_streamlit(width=1820, height=900)
     
+else:
+    st.write("Você selecionou o acumulado instantâneo.")
+
+    # --- Barra Lateral ---
+    st.sidebar.header("Filtros")
+    datafi = st.sidebar.date_input("Data", max_value= date.today() -  timedelta(days=0))
+
+    # Converte as datas para strings no formato 'YYYY-MM-DD'
+    datain_str = datafi - timedelta(days=1)
+    datain_str = datain_str.strftime('%Y-%m-%d')
+    datafi_str = datafi.strftime('%Y-%m-%d')
+
+    # Carrega o dataset GPM
+    dataset = ee.ImageCollection('NASA/GPM_L3/IMERG_V07') \
+        .filter(ee.Filter.date(datain_str, datafi_str))
+    
+    # Ordena o dataset pela data e seleciona a primeira imagem (mais recente)
+    dataset = dataset.sort('system:time_start', False).first()
+    # Seleciona a taxa de precipitação horária
+    precipitation = dataset.select('precipitation')
+
+    # Configura a visualização
+    precipitationVis = {
+        'min': 1,
+        'max': 30.0,
+        'palette': ['1621a2','03ffff', '13ff03', 'efff00', 'ffb103', 'ff2300']}
+
+    # Cria o mapa
+    Map = geemap.Map(center=[-19, -60], zoom=4, tiles='cartodbdark_matter')
+    Map.addLayer(precipitation.updateMask(precipitation.gt(0.5)), precipitationVis, 'Precipitação Horária', opacity=1)
+
+    Map.add_colorbar(precipitationVis, background_color='white', step= 20, label='Precipitação [mm/h]')
+    Map.to_streamlit(width=1820, height=900)

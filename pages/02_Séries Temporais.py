@@ -23,7 +23,7 @@ st.set_page_config(layout='wide',
                    page_icon='🌧️')
 
 
-with open('style.css')as f:
+with open('TCC_GEE/style.css')as f:
     st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html = True)
 
 st.sidebar.title('Menu')
