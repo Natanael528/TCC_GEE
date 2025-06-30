@@ -241,7 +241,7 @@ else:
 
     # Obtém a data da imagem
     data_ultima_imagem = ee.Date(ultima_imagem.get('system:time_start')) \
-                            .format('YYYY-MM-dd as HH:mm').getInfo()
+                            .format('YYYY-MM-dd HH:mm').getInfo()
 
     st.write(f"Você selecionou o acumulado instantâneo que mostra a última imagem disponível em **{data_ultima_imagem}**")
 
@@ -255,10 +255,10 @@ else:
     # Cria o mapa com geemap
     Map = geemap.Map(center=[-19, -60], zoom=4, tiles='cartodbdark_matter')
 
+
     # Aplica máscara para mostrar apenas valores > 0.5 mm/h
     Map.addLayer(precipitation.updateMask(precipitation.gt(0.5)),
                 precipitationVis, 'Precipitação Horária', opacity=1)
 
     Map.add_colorbar(precipitationVis, background_color='white', step=20, label='Precipitação [mm/h]')
-    Map.add_colorbar(precipitationVis, background_color='white', step= 20, label='Precipitação [mm/h]')
     Map.to_streamlit(width=1820, height=900)

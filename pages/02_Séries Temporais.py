@@ -34,10 +34,12 @@ if 'drawn_geometry' not in st.session_state:
 if 'precipitation_result' not in st.session_state:
     st.session_state['precipitation_result'] = None
 
+
 # --- CARREGAMENTO E PROCESSAMENTO DE DADOS GEE ---
 # Define o intervalo de datas para buscar a imagem mais recente.
 datain = date.today() - timedelta(days=1)
 datafi = date.today()
+
 with open('style.css')as f:
     st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html = True)
 
