@@ -38,6 +38,8 @@ if 'precipitation_result' not in st.session_state:
 # Define o intervalo de datas para buscar a imagem mais recente.
 datain = date.today() - timedelta(days=1)
 datafi = date.today()
+with open('style.css')as f:
+    st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html = True)
 
 # Carrega a coleção de imagens GPM, filtra por data e ordena para obter a mais recente.
 dataset = ee.ImageCollection('NASA/GPM_L3/IMERG_V07') \

@@ -260,4 +260,5 @@ else:
                 precipitationVis, 'Precipitação Horária', opacity=1)
 
     Map.add_colorbar(precipitationVis, background_color='white', step=20, label='Precipitação [mm/h]')
+    Map.add_colorbar(precipitationVis, background_color='white', step= 20, label='Precipitação [mm/h]')
     Map.to_streamlit(width=1820, height=900)
