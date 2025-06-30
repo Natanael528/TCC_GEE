@@ -23,7 +23,7 @@ st.set_page_config(layout='wide',
                    page_icon='🌧️')
 
 
-with open('TCC_GEE/style.css')as f:
+with open('style.css')as f:
     st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html = True)
 
 st.sidebar.title('Menu')
@@ -223,35 +223,41 @@ elif genre == "***Anual***":
     Map.to_streamlit(width=1820, height=900)
     
 else:
-    st.write("Você selecionou o acumulado instantâneo.")
 
-    # --- Barra Lateral ---
-    st.sidebar.header("Filtros")
-    datafi = st.sidebar.date_input("Data", max_value= date.today() -  timedelta(days=0))
+    # Define o intervalo de datas: ontem até hoje
+    datain = date.today() - timedelta(days=1)
+    datafi = date.today()
 
-    # Converte as datas para strings no formato 'YYYY-MM-DD'
-    datain_str = datafi - timedelta(days=1)
-    datain_str = datain_str.strftime('%Y-%m-%d')
-    datafi_str = datafi.strftime('%Y-%m-%d')
-
-    # Carrega o dataset GPM
+    # Carrega o dataset GPM e ordena do mais recente para o mais antigo
     dataset = ee.ImageCollection('NASA/GPM_L3/IMERG_V07') \
-        .filter(ee.Filter.date(datain_str, datafi_str))
-    
-    # Ordena o dataset pela data e seleciona a primeira imagem (mais recente)
-    dataset = dataset.sort('system:time_start', False).first()
-    # Seleciona a taxa de precipitação horária
-    precipitation = dataset.select('precipitation')
+                .filterDate(datain.strftime('%Y-%m-%d'), datafi.strftime('%Y-%m-%d')) \
+                .sort('system:time_start', False)
+
+    # Seleciona a imagem mais recente
+    ultima_imagem = dataset.first()
+
+    # Seleciona a banda de precipitação horária
+    precipitation = ultima_imagem.select('precipitation')
+
+    # Obtém a data da imagem
+    data_ultima_imagem = ee.Date(ultima_imagem.get('system:time_start')) \
+                            .format('YYYY-MM-dd as HH:mm').getInfo()
+
+    st.write(f"Você selecionou o acumulado instantâneo que mostra a última imagem disponível em **{data_ultima_imagem}**")
 
     # Configura a visualização
     precipitationVis = {
         'min': 1,
         'max': 30.0,
-        'palette': ['1621a2','03ffff', '13ff03', 'efff00', 'ffb103', 'ff2300']}
+        'palette': ['1621a2', '03ffff', '13ff03', 'efff00', 'ffb103', 'ff2300']
+    }
 
-    # Cria o mapa
+    # Cria o mapa com geemap
     Map = geemap.Map(center=[-19, -60], zoom=4, tiles='cartodbdark_matter')
-    Map.addLayer(precipitation.updateMask(precipitation.gt(0.5)), precipitationVis, 'Precipitação Horária', opacity=1)
 
-    Map.add_colorbar(precipitationVis, background_color='white', step= 20, label='Precipitação [mm/h]')
+    # Aplica máscara para mostrar apenas valores > 0.5 mm/h
+    Map.addLayer(precipitation.updateMask(precipitation.gt(0.5)),
+                precipitationVis, 'Precipitação Horária', opacity=1)
+
+    Map.add_colorbar(precipitationVis, background_color='white', step=20, label='Precipitação [mm/h]')
     Map.to_streamlit(width=1820, height=900)
