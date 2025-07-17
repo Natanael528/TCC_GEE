@@ -148,7 +148,7 @@ elif tipo_analise == 'Estado':
 
 st.sidebar.header("2. Seleção do Período")
 # Limita o range de datas disponíveis para o CHIRPS
-start_date = st.sidebar.date_input("🗓️ Data inicial", date(2015, 1, 1), min_value=date(1981, 1, 1), max_value=date.today())
+start_date = st.sidebar.date_input("🗓️ Data inicial", date(1981, 1, 1), min_value=date(1981, 1, 1), max_value=date.today())
 end_date = st.sidebar.date_input("🗓️ Data final", date.today(), min_value=date(1981, 1, 1), max_value=date.today())
 
 st.sidebar.header("3. Executar")
