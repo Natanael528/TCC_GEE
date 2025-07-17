@@ -120,8 +120,7 @@ with col2:
         mapa_exemplo = create_brazil_annual_map()
         if mapa_exemplo:
             mapa_exemplo.to_streamlit(height=400)
-        else:
-            st.image("https://i.imgur.com/g2j5Y8h.png", caption="Ilustração de mapa de dados geoespaciais.")
+
 
 
 st.write("---")
