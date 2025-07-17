@@ -59,8 +59,9 @@ if genre == "***Diário***":
                     .filter(ee.Filter.date(range)) \
                     .select('precipitation')
 
+    imerge_mes = imerge_30min.map(lambda img: img.multiply(0.5).copyProperties(img, img.propertyNames()))
     # seleciona o máximo de precipitação
-    precipitation = imerge_30min.max()
+    precipitation = imerge_mes.sum()
 
     # mascara valores abaixo de 0.5 mm/h
     mask = precipitation.gt(0.5)
