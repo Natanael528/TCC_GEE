@@ -1,151 +1,221 @@
 import streamlit as st
 import ee
-import geemap.foliumap as geemap  # Importa o backend correto para Streamlit
-from datetime import date, timedelta
+import geemap.foliumap as geemap
+from datetime import date
+import plotly.express as px
+import pandas as pd
 
-# --- CONFIGURAÇÃO DA PÁGINA STREAMLIT ---
-# Define a configuração da página para um layout amplo e adiciona metadados.
+# --- Configurações Iniciais e Autenticação ---
+
 st.set_page_config(
     layout='wide',
-    page_title='Análise de Chuva GEE',
+    page_title='Análise de Precipitação | GEE',
     initial_sidebar_state='expanded',
     menu_items={
-        'About': 'Aplicativo desenvolvido por Natanael Silva Oliveira para o projeto de TCC do curso de Ciências Atmosféricas da Universidade Federal de Itajubá - UNIFEI.',
+        'About': 'Aplicativo desenvolvido por Natanael Silva Oliveira para o TCC de Ciências Atmosféricas - UNIFEI.',
         'Report a bug': 'mailto:natanaeloliveira2387@gmail.com'
     },
-    page_icon='🌧️'
+    page_icon='☔️'
 )
 
-# --- INICIALIZAÇÃO DO GOOGLE EARTH ENGINE ---
-# É crucial inicializar o GEE no início do script.
-# Em um ambiente de produção do Streamlit Cloud, as credenciais devem ser
-# configuradas como segredos (secrets).
+# Bloco para inicializar o GEE de forma segura
 try:
-    ee.Initialize()
-except Exception as e:
-    st.error("Falha ao inicializar o Google Earth Engine. Verifique suas credenciais.")
+    # A autenticação pode ser desnecessária em alguns ambientes (como o Streamlit Cloud com segredos)
+    # ee.Authenticate() 
+    ee.Initialize(project='d2021028876')
+except ee.ee_exception.EEException as e:
+    st.error("Erro ao inicializar o Google Earth Engine. Verifique suas credenciais.")
     st.stop()
 
-# --- GERENCIAMENTO DE ESTADO DA SESSÃO ---
-# Inicializa as variáveis no st.session_state se elas não existirem.
-# Isso é essencial para manter os dados entre as execuções do script no Streamlit.
-if 'drawn_geometry' not in st.session_state:
-    st.session_state['drawn_geometry'] = None
-if 'precipitation_result' not in st.session_state:
-    st.session_state['precipitation_result'] = None
+
+EE_COLLECTION = 'UCSB-CHG/CHIRPS/PENTAD'
 
 
-# --- CARREGAMENTO E PROCESSAMENTO DE DADOS GEE ---
-# Define o intervalo de datas para buscar a imagem mais recente.
-datain = date.today() - timedelta(days=1)
-datafi = date.today()
+# Coleções vetoriais do GEE
+collection_estados = ee.FeatureCollection('FAO/GAUL/2015/level1') \
+    .filter(ee.Filter.eq('ADM0_NAME', 'Brazil'))
 
-with open('style.css')as f:
-    st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html = True)
+collection_municipios = ee.FeatureCollection('FAO/GAUL/2015/level2') \
+    .filter(ee.Filter.eq('ADM0_NAME', 'Brazil'))
 
-# Carrega a coleção de imagens GPM, filtra por data e ordena para obter a mais recente.
-dataset = ee.ImageCollection('NASA/GPM_L3/IMERG_V07') \
-           .filterDate(datain.strftime('%Y-%m-%d'), datafi.strftime('%Y-%m-%d')) \
-           .sort('system:time_start', False)
+def get_annual_precipitation_data(collection, roi, start_year, end_year):
+    years = ee.List.sequence(start_year, end_year)
 
-# Seleciona a imagem mais recente da coleção.
-ultima_imagem = dataset.first()
-# Seleciona a banda de interesse ('precipitation').
-precipitation = ultima_imagem.select('precipitation')
+    def calculate_annual_mean(year):
+        year = ee.Number(year)
+        start_date = ee.Date.fromYMD(year, 1, 1)
+        end_date = start_date.advance(1, 'year')
+        
+        # Filtra a coleção para o ano e soma todas as imagens (pentadas)
+        total_precip_image = collection.filterDate(start_date, end_date).sum()
 
-# Obtém a data da imagem para exibição.
-data_ultima_imagem = ee.Date(ultima_imagem.get('system:time_start')) \
-                       .format('YYYY-MM-dd HH:mm').getInfo()
+        mean_value = total_precip_image.reduceRegion(
+            reducer=ee.Reducer.mean(),
+            geometry=roi,
+            scale=10000, 
+            maxPixels=1e9
+        ).get('precipitation')
 
-st.title("Análise de Precipitação Instantânea (GPM)")
-st.write(f"Visualizando a última imagem disponível em **{data_ultima_imagem}** (UTC).")
-st.markdown("---")
+        return ee.Feature(None, {'year': year, 'precip': mean_value})
 
-# --- LAYOUT DA APLICAÇÃO ---
-# Divide a interface em duas colunas para melhor organização.
-col1, col2 = st.columns()
+    annual_means_fc = ee.FeatureCollection(years.map(calculate_annual_mean))
+    data = annual_means_fc.getInfo()
+    rows = [f['properties'] for f in data['features']]
+    return pd.DataFrame(rows)
 
-with col1:
-    # --- CRIAÇÃO E EXIBIÇÃO DO MAPA INTERATIVO ---
-    # Instancia o mapa usando geemap.foliumap.
-    Map = geemap.Map(center=[-15, -55], zoom=4, tiles='cartodbdark_matter')
+def get_monthly_climatology_data(collection, roi, start_year, end_year):
+    months = ee.List.sequence(1, 12)
+    
+    # MODIFICADO: A climatologia deve ser calculada sobre a média de vários anos
+    def calculate_monthly_mean(m):
+        m = ee.Number(m)
+        # Filtra a coleção para um mês específico ao longo de todos os anos selecionados
+        monthly_collection = collection.filter(ee.Filter.calendarRange(m, m, 'month'))
+        
+        # Calcula a precipitação média mensal para o período
+        # Soma das precipitações do mês e divide pelo número de anos
+        total_precip = monthly_collection.sum()
+        num_years = ee.Number(end_year).subtract(start_year).add(1)
+        mean_monthly_precip = total_precip.divide(num_years)
 
-    # Define os parâmetros de visualização para a camada de precipitação.
-    precipitationVis = {
-        'min': 1,
-        'max': 30.0,
-        'palette': ['1621a2', '03ffff', '13ff03', 'efff00', 'ffb103', 'ff2300']
-    }
+        mean_value = mean_monthly_precip.reduceRegion(
+            reducer=ee.Reducer.mean(),
+            geometry=roi,
+            scale=10000,
+            maxPixels=1e9
+        ).get('precipitation')
 
-    # Adiciona a camada de precipitação ao mapa, com uma máscara para valores > 0.5 mm/h.
-    Map.addLayer(precipitation.updateMask(precipitation.gt(0.5)),
-                 precipitationVis, 'Precipitação Horária', opacity=1)
+        return ee.Feature(None, {'month': m, 'precip': mean_value})
 
-    # Adiciona a barra de cores ao mapa.
-    Map.add_colorbar(precipitationVis, label='Precipitação [mm/h]')
+    monthly_means_fc = ee.FeatureCollection(months.map(calculate_monthly_mean))
+    data = monthly_means_fc.getInfo()
+    rows = [f['properties'] for f in data['features']]
+    df = pd.DataFrame(rows)
+    # Mapeia o número do mês para o nome para melhor visualização no gráfico
+    df['month_name'] = df['month'].apply(lambda x: pd.to_datetime(f'2023-{x}-01').strftime('%b'))
+    return df.sort_values(by='month').reset_index(drop=True)
 
-    # Renderiza o mapa no Streamlit e captura as interações do usuário.
-    # O dicionário 'output' contém o estado do mapa no cliente.
-    output = Map.to_streamlit(height=700)
+# --- Interface do Usuário ---
 
-    # Atualiza o estado da sessão com a geometria desenhada mais recente.
-    if output and output.get("last_active_drawing"):
-        st.session_state['drawn_geometry'] = output["last_active_drawing"]
-        # Limpa o resultado anterior quando um novo desenho é feito.
-        st.session_state['precipitation_result'] = None
+st.title("☔️ Análise de Precipitação Acumulada (CHIRPS)")
+st.markdown("Use a barra lateral para selecionar a região e o período de interesse.")
 
-with col2:
-    st.subheader("Controles de Análise")
-    st.write("Use as ferramentas de desenho no mapa (canto superior esquerdo) para selecionar uma área e clique no botão abaixo.")
+st.sidebar.header("1. Seleção da Região")
 
-    # --- LÓGICA DO BOTÃO DE ANÁLISE ---
-    if st.button('Analisar Área Selecionada'):
-        # Verifica se uma geometria foi desenhada e está no estado da sessão.
-        if st.session_state['drawn_geometry']:
-            with st.spinner('Calculando a precipitação média...'):
-                try:
-                    # Converte o dicionário GeoJSON do frontend para um objeto ee.Geometry.
-                    coords = st.session_state['drawn_geometry']['geometry']['coordinates']
-                    roi_ee = ee.Geometry.Polygon(coords)
+# NOVO: Seletor para escolher o tipo de análise (Estado ou Município)
+tipo_analise = st.sidebar.radio(
+    "Analisar por:",
+    ('Município', 'Estado'),
+    key='tipo_analise'
+)
 
-                    # Executa a análise zonal usando reduceRegion.
-                    stats = precipitation.reduceRegion(
-                        reducer=ee.Reducer.mean(),
-                        geometry=roi_ee,
-                        scale=10000,  # Resolução em metros, apropriada para GPM.
-                        crs='EPSG:4326',
-                        bestEffort=True # Garante que a análise funcione para áreas grandes.
-                    ).getInfo()
+# Inicializa variáveis para evitar erros
+estado_selecionado = None
+municipio_selecionado = None
+local_selecionado_nome = None # NOVO: Variável para guardar o nome do local para títulos
 
-                    # Extrai o resultado e armazena no estado da sessão.
-                    precip_value = stats.get('precipitation')
-                    st.session_state['precipitation_result'] = precip_value
+# Obtém a lista de estados (operação que pode ser lenta, ideal fazer uma vez)
+try:
+    estados = sorted(collection_estados.aggregate_array('ADM1_NAME').getInfo())
+except Exception as e:
+    st.sidebar.error("Não foi possível carregar a lista de estados do GEE.")
+    st.stop()
 
-                except Exception as e:
-                    st.error(f"Ocorreu um erro durante a análise: {e}")
-                    st.session_state['precipitation_result'] = "Erro"
-        else:
-            st.warning('Nenhuma área foi desenhada. Por favor, selecione uma região no mapa.')
 
-    # --- EXIBIÇÃO DOS RESULTADOS ---
-    st.markdown("---")
-    st.subheader("Resultado")
-
-    if st.session_state['precipitation_result'] is not None:
-        if isinstance(st.session_state['precipitation_result'], (int, float)):
-            st.metric(
-                label="Precipitação Média na Área",
-                value=f"{st.session_state['precipitation_result']:.2f} mm/h"
+# MODIFICADO: Lógica condicional para exibir os seletores
+if tipo_analise == 'Município':
+    estado_selecionado = st.sidebar.selectbox("Escolha o Estado", estados, index=estados.index('Minas Gerais'))
+    
+    if estado_selecionado:
+        with st.spinner("Carregando municípios..."):
+            municipios_filtrados = collection_municipios.filter(
+                ee.Filter.eq('ADM1_NAME', estado_selecionado)
             )
-            st.success("Cálculo concluído com sucesso!")
-        elif st.session_state['precipitation_result'] == "Erro":
-            st.error("Não foi possível calcular o valor.")
-        else:
-            # Caso em que o valor é None dentro da área (sem precipitação)
-            st.metric(
-                label="Precipitação Média na Área",
-                value="0.00 mm/h"
-            )
-            st.info("Nenhuma precipitação significativa detectada na área selecionada.")
+            municipios = sorted(municipios_filtrados.aggregate_array('ADM2_NAME').getInfo())
+        municipio_selecionado = st.sidebar.selectbox("Escolha o Município", municipios)
+        if municipio_selecionado:
+            local_selecionado_nome = f"{municipio_selecionado}, {estado_selecionado}"
+
+elif tipo_analise == 'Estado':
+    estado_selecionado = st.sidebar.selectbox("Escolha o Estado", estados, index=estados.index('Minas Gerais'))
+    if estado_selecionado:
+        local_selecionado_nome = estado_selecionado
+
+
+st.sidebar.header("2. Seleção do Período")
+# Limita o range de datas disponíveis para o CHIRPS
+start_date = st.sidebar.date_input("🗓️ Data inicial", date(2015, 1, 1), min_value=date(1981, 1, 1), max_value=date.today())
+end_date = st.sidebar.date_input("🗓️ Data final", date.today(), min_value=date(1981, 1, 1), max_value=date.today())
+
+st.sidebar.header("3. Executar")
+run_analysis = st.sidebar.button("Gerar Análise", type="primary")
+
+if run_analysis:
+    # MODIFICADO: Verifica se um local válido foi selecionado
+    if not local_selecionado_nome:
+        st.error("Por favor, selecione uma região válida (Estado ou Município).")
+    elif start_date >= end_date:
+        st.error("A data inicial deve ser anterior à data final.")
     else:
-        st.info("Aguardando análise...")
+        roi = None
+        # MODIFICADO: Define a ROI com base na escolha do usuário
+        if tipo_analise == 'Município' and municipio_selecionado:
+            roi_fc = collection_municipios.filter(
+                ee.Filter.And(
+                    ee.Filter.eq('ADM1_NAME', estado_selecionado),
+                    ee.Filter.eq('ADM2_NAME', municipio_selecionado)
+                )
+            )
+            roi = roi_fc.geometry()
+        
+        elif tipo_analise == 'Estado' and estado_selecionado:
+            roi_fc = collection_estados.filter(
+                ee.Filter.eq('ADM1_NAME', estado_selecionado)
+            )
+            roi = roi_fc.geometry()
+
+        # Filtra a coleção de imagens com base na data e na ROI
+        precip_collection = ee.ImageCollection(EE_COLLECTION) \
+            .select('precipitation') \
+            .filterDate(start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d")) \
+            .filterBounds(roi)
+
+        st.header(f"🗺️ Mapa de Localização: {local_selecionado_nome}")
+        m_roi = geemap.Map(height=400, center_lon=-49, center_lat=-15, zoom=4)
+        m_roi.centerObject(roi, 8)
+        m_roi.addLayer(roi, {'color': 'yellow', 'fillColor': 'yellow_50'}, 'Região de Interesse')
+        m_roi.to_streamlit()
+
+        st.header("📊 Análise Gráfica da Precipitação")
+        col1, col2 = st.columns(2)
+
+        with col1:
+            with st.spinner("Gerando gráfico anual..."):
+                df_annual = get_annual_precipitation_data(precip_collection, roi, start_date.year, end_date.year)
+                if df_annual.empty or df_annual['precip'].isnull().all():
+                    st.warning("Não há dados anuais para o período selecionado.")
+                else:
+                    fig_annual = px.bar(
+                        df_annual, x="year", y="precip",
+                        labels={"year": "Ano", "precip": "Precipitação Anual Acumulada (mm)"},
+                        title=f"Precipitação Anual Total para<br><b>{local_selecionado_nome}</b>"
+                    )
+                    fig_annual.update_traces(marker_color="#0384fc")
+                    st.plotly_chart(fig_annual, use_container_width=True)
+
+        with col2:
+            with st.spinner("Gerando gráfico de climatologia mensal..."):
+                df_monthly = get_monthly_climatology_data(precip_collection, roi, start_date.year, end_date.year)
+                if df_monthly.empty or df_monthly['precip'].isnull().all():
+                    st.warning("Não há dados mensais para o período selecionado.")
+                else:
+                    fig_monthly = px.line(
+                        df_monthly, x="month_name", y="precip",
+                        labels={"month_name": "Mês", "precip": "Precipitação Média Mensal (mm)"},
+                        title=f"Climatologia Mensal ({start_date.year}-{end_date.year})<br><b>{local_selecionado_nome}</b>",
+                        markers=True
+                    )
+                    fig_monthly.update_xaxes(title_text='Mês')
+                    st.plotly_chart(fig_monthly, use_container_width=True)
+else:
+    st.info("👈 Selecione as opções na barra lateral e clique em 'Gerar Análise' para começar.")
