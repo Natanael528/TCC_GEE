@@ -4,8 +4,19 @@ import geemap.foliumap as geemap
 from datetime import date
 import plotly.express as px
 import pandas as pd
-
+import json
+import tempfile
 # --- Configurações Iniciais e Autenticação ---
+
+# Cria arquivo temporário com as credenciais
+service_account_info = dict(st.secrets["earthengine"])
+
+with tempfile.NamedTemporaryFile(mode='w+', suffix='.json', delete=False) as f:
+    json.dump(service_account_info, f)
+    f.flush()
+    credentials = ee.ServiceAccountCredentials(service_account_info["client_email"], f.name)
+    ee.Initialize(credentials)
+
 
 st.set_page_config(
     layout='wide',
@@ -17,15 +28,6 @@ st.set_page_config(
     },
     page_icon='☔️'
 )
-
-# Bloco para inicializar o GEE de forma segura
-try:
-    # A autenticação pode ser desnecessária em alguns ambientes (como o Streamlit Cloud com segredos)
-    # ee.Authenticate() 
-    ee.Initialize(project='d2021028876')
-except ee.ee_exception.EEException as e:
-    st.error("Erro ao inicializar o Google Earth Engine. Verifique suas credenciais.")
-    st.stop()
 
 
 EE_COLLECTION = 'UCSB-CHG/CHIRPS/PENTAD'
