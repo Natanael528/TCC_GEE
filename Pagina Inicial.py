@@ -16,6 +16,8 @@ with tempfile.NamedTemporaryFile(mode='w+', suffix='.json', delete=False) as f:
     credentials = ee.ServiceAccountCredentials(service_account_info["client_email"], f.name)
     ee.Initialize(credentials)
 
+# ee.Authenticate()
+# ee.Initialize(project='d2021028876')
 
 
 

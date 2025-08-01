@@ -15,12 +15,16 @@ with tempfile.NamedTemporaryFile(mode='w+', suffix='.json', delete=False) as f:
     credentials = ee.ServiceAccountCredentials(service_account_info["client_email"], f.name)
     ee.Initialize(credentials)
     
-st.set_page_config(layout='wide',
-                   page_title='Chuva GEE',
-                   initial_sidebar_state='expanded',
-                   menu_items={'About': 'Aplicativo desenvolvido por Natanael Silva Oliveira para o projeto de TCC do curso de Ciências Atmosféricas da Universidade Federal de Itajubá - UNIFEI.',
-                                 'Report a bug': 'mailto: natanaeloliveira2387@gmail.com'},
-                   page_icon='🌧️')
+st.set_page_config(
+    layout='wide',
+    page_title='HydroGEE Analytics | Início',
+    initial_sidebar_state='expanded',
+    menu_items={
+        'About': 'Aplicativo desenvolvido por Natanael Silva Oliveira para o TCC de Ciências Atmosféricas - UNIFEI.',
+        'Report a bug': 'mailto:natanaeloliveira2387@gmail.com'
+    },
+    page_icon='💧'
+)
 
 
 with open('style.css')as f:
@@ -165,7 +169,7 @@ elif genre == "***Anual***":
 
     
 
-    anos_disponiveis = list(range(2000, date.today().year + 1))
+    anos_disponiveis = list(range(1981, date.today().year + 1))
 
     # 2. Crie o selectbox
     ano = st.sidebar.selectbox(
