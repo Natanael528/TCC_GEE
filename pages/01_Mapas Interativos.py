@@ -50,7 +50,7 @@ if genre == "***Diário***":
     # --- Barra Lateral ---
     st.sidebar.header("Filtros")
 
-    data = st.sidebar.date_input("Data", max_value= date.today() -  timedelta(days=3))
+    data = st.sidebar.date_input("Data", max_value= date.today() -  timedelta(days=1))
 
     data = data.strftime('%Y-%m-%d')
 
