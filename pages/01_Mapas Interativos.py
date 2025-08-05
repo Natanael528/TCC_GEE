@@ -194,8 +194,8 @@ elif genre == "***Anual***":
     st.write("Você selecionou o acumulado anual, focado no Brasil para o ano de **{}**".format(ano))
 
     # **NOVA ETAPA:** Carrega os limites dos países e filtra para obter o Brasil
-    countries = ee.FeatureCollection('USDOS/LSIB_SIMPLE/2017')
-    brazil = countries.filter(ee.Filter.eq('country_na', 'Brazil'))
+    # countries = ee.FeatureCollection('USDOS/LSIB_SIMPLE/2017')
+    # brazil = countries.filter(ee.Filter.eq('country_na', 'Brazil'))
 
     # Carrega a coleção de imagens GPM e filtra por data
     imerge_30min = ee.ImageCollection('UCSB-CHG/CHIRPS/PENTAD') \
@@ -207,8 +207,8 @@ elif genre == "***Anual***":
     # Soma todas as imagens da coleção para obter o acumulado anual
     annual_precipitation = precipitation_collection.sum()
 
-    # **NOVA ETAPA:** Recorta a imagem de precipitação usando o limite do Brasil
-    brazil_precipitation = annual_precipitation.clip(brazil)
+    # # **NOVA ETAPA:** Recorta a imagem de precipitação usando o limite do Brasil
+    brazil_precipitation = annual_precipitation#.clip(brazil)
 
     # Ajusta os parâmetros de visualização para um acumulado anual (mm)
     precipitationVis = {
