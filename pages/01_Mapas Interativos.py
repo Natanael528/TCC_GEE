@@ -80,7 +80,8 @@ if genre == "***Diário***":
         'max': 50.0,
         'palette': ['1621a2','03ffff', '13ff03', 'efff00', 'ffb103', 'ff2300']}
 
-
+    st.write(f"Você selecionou o acumulado diário para a data **{data}**")
+    
     # Cria o mapa
     Map = geemap.Map(center=[-19, -60], zoom=4, tiles='cartodbdark_matter')
     Map.addLayer(precipitation, precipitationVis, 'Precipitação Horária', opacity=1)
