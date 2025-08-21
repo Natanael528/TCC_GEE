@@ -240,54 +240,78 @@ elif genre == "***Anual***":
     
 else:
 
+    # Data inicial (3 dias atrás) e data final (hoje)
+    datain_padrao = date.today() - timedelta(days=3)
+    datafi_padrao = date.today() - timedelta(days=1)
 
+    # Entrada de data específica no sidebar
+    data_especifica = st.sidebar.date_input(
+        "Escolha uma data específica:",
+        value=datafi_padrao,
+        min_value=date(2000, 6, 1),
+        max_value=datafi_padrao
+    )
 
-    datain = date.today() - timedelta(days=3)
-    datafi = date.today()
+    # Define intervalo: se escolher a data específica, busca apenas esse dia
+    if data_especifica:
+        datain = data_especifica
+        datafi = data_especifica + timedelta(days=1)
+    else:
+        datain = datain_padrao
+        datafi = datafi_padrao
 
-    # Carrega o dataset GPM
-    imerge_30min = ee.ImageCollection('NASA/GPM_L3/IMERG_V07') \
-                .filterDate(datain.strftime('%Y-%m-%d'), datafi.strftime('%Y-%m-%d'))
-   
-    # transforma de mm/h para mm/0.5h
-    dataset = imerge_30min.map(lambda img: img.multiply(0.5).copyProperties(img, img.propertyNames()))
+    # ===============================
+    # Carregamento do dataset
+    # ===============================
+    ime_collection = ee.ImageCollection('NASA/GPM_L3/IMERG_V07') \
+        .filterDate(datain.strftime('%Y-%m-%d'), datafi.strftime('%Y-%m-%d') )
 
-    # VERIFICAÇÃO IMPORTANTE: Checa se a coleção de imagens não está vazia
+    # Converte mm/h para mm/0.5h
+    dataset = ime_collection.map(lambda img: img.multiply(0.5).copyProperties(img, img.propertyNames()))
+
     dataset_size = dataset.size().getInfo()
 
     if dataset_size > 0:
-        # Ordena do mais recente para o mais antigo, somente se houver imagens
+        # Ordena do mais recente para o mais antigo
         dataset_sorted = dataset.sort('system:time_start', False)
 
-        # Seleciona a imagem mais recente
+        # Lista de horários disponíveis
+        horarios = dataset_sorted.aggregate_array('system:time_start').getInfo()
+        horarios_formatados = [ee.Date(h).format('YYYY-MM-dd HH:mm').getInfo() for h in horarios]
+
+        # Mostra a última imagem disponível
         ultima_imagem = dataset_sorted.first()
+        ultima_data = ee.Date(ultima_imagem.get('system:time_start')).format('YYYY-MM-dd HH:mm').getInfo()
 
-        # Seleciona a banda de precipitação horária
-        precipitation = ultima_imagem.select('precipitation')
+        st.write(f"Última imagem disponível: **{ultima_data} UTC**")
 
-        # Obtém a data da imagem
-        data_ultima_imagem = ee.Date(ultima_imagem.get('system:time_start')).format('YYYY-MM-dd HH:mm').getInfo()
+        # Escolha de horário específico
+        horario_escolhido = st.sidebar.selectbox(
+            "Selecione um horário disponível:",
+            options=horarios_formatados,
+            index=0
+        )
 
-        st.write(f"Você selecionou o acumulado instantâneo que mostra a última imagem disponível em **{data_ultima_imagem}** (UTC)")
+        # Filtra a imagem pelo horário escolhido
+        imagem_selecionada = dataset_sorted.filter(
+            ee.Filter.eq('system:time_start', horarios[horarios_formatados.index(horario_escolhido)])
+        ).first()
 
-        # Configura a visualização
+        precipitation = imagem_selecionada.select('precipitation')
+
+        # Configura visualização
         precipitationVis = {
             'min': 1,
             'max': 30.0,
             'palette': ['1621a2', '03ffff', '13ff03', 'efff00', 'ffb103', 'ff2300']
         }
 
-    
-        st.sidebar.text("Os dados de precipitação dessa opção são provenientes do Global Integrated Multi-satellite Retrievals for GPM (IMERG) e estão disponíveis a partir de 2000.")
+        st.sidebar.text("Dados: NASA GPM IMERG (0.1°, 30 min) desde 2000.")
 
-
-        # Cria o mapa com geemap
+        # Cria mapa
         Map = geemap.Map(center=[-19, -60], zoom=4, tiles='cartodbdark_matter')
-
-        # Aplica máscara para mostrar apenas valores > 0.5 mm/h
         Map.addLayer(precipitation.updateMask(precipitation.gt(0.5)),
                     precipitationVis, 'Precipitação Horária', opacity=1)
-
         Map.add_colorbar(precipitationVis, background_color='white', label='Precipitação [mm/h]')
         Map.to_streamlit(width=1820, height=900)
 
