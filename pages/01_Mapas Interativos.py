@@ -39,7 +39,7 @@ genre = st.sidebar.radio(
     "Escolha a opção de precipitação:",
     ["***Instantâneo***","***Diário***", "***Mensal***", "***Anual***"],
     captions=[
-        "Última imagem fornecida.",
+        "Imagens disponiveis.",
         "Acumulado diário.",
         "Acumulado mensal.",
         "Acumulado anual.",
@@ -193,7 +193,6 @@ elif genre == "***Anual***":
 
     st.write("Você selecionou o acumulado anual, focado no Brasil para o ano de **{}**".format(ano))
 
-    # **NOVA ETAPA:** Carrega os limites dos países e filtra para obter o Brasil
     # countries = ee.FeatureCollection('USDOS/LSIB_SIMPLE/2017')
     # brazil = countries.filter(ee.Filter.eq('country_na', 'Brazil'))
 
@@ -260,9 +259,7 @@ else:
         datain = datain_padrao
         datafi = datafi_padrao
 
-    # ===============================
-    # Carregamento do dataset
-    # ===============================
+
     ime_collection = ee.ImageCollection('NASA/GPM_L3/IMERG_V07') \
         .filterDate(datain.strftime('%Y-%m-%d'), datafi.strftime('%Y-%m-%d') )
 
@@ -283,7 +280,7 @@ else:
         ultima_imagem = dataset_sorted.first()
         ultima_data = ee.Date(ultima_imagem.get('system:time_start')).format('YYYY-MM-dd HH:mm').getInfo()
 
-        st.write(f"Última imagem disponível: **{ultima_data} UTC**")
+        st.write(f"Imagem disponível para: **{ultima_data} UTC**")
 
         # Escolha de horário específico
         horario_escolhido = st.sidebar.selectbox(
