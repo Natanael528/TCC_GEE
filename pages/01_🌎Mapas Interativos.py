@@ -372,13 +372,13 @@ def soma_periodo(info, inicio, fim):
 # --- MODOS DE ANÁLISE ---
 def ultima_imagem(info):
     hoje = date.today()
-    inicio = hoje - timedelta(days=30)  # buscar só nos últimos 30 dias
+    inicio = hoje - timedelta(days=35)  # buscar só nos últimos 35 dias
     colecao = ee.ImageCollection(info['id']) \
         .filterDate(str(inicio), str(hoje + timedelta(days=1))) \
         .sort('system:time_start', False)
 
     if colecao.size().getInfo() == 0:
-        st.warning("Nenhuma imagem encontrada nos últimos 30 dias.")
+        st.warning("Nenhuma imagem encontrada nos últimos 35 dias.")
         return
 
     img = colecao.first()
