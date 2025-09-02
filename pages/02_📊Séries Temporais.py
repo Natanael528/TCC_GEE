@@ -320,7 +320,7 @@ def get_annual_precipitation(collection, roi, start_year, end_year):
         end_date = start_date.advance(1, 'year')
         total_precip_image = collection.filterDate(start_date, end_date).sum()
         mean_value = total_precip_image.reduceRegion(
-            reducer=ee.Reducer.sum(), geometry=roi, scale=SCALE, maxPixels=1e12 ##########################
+            reducer=ee.Reducer.mean(), geometry=roi, scale=SCALE, maxPixels=1e12 ##########################
         ).get('precipitation')
         return ee.Feature(None, {'year': year, 'precip': mean_value})
     annual_means_fc = ee.FeatureCollection(years.map(calculate_annual))
@@ -336,7 +336,7 @@ def get_monthly_climatology(collection, roi, start_year, end_year):
         total_precip = monthly_collection.sum()
         mean_monthly_precip = total_precip.divide(num_years)
         mean_value = mean_monthly_precip.reduceRegion(
-            reducer=ee.Reducer.sum(), geometry=roi, scale=SCALE, maxPixels=1e12 #################
+            reducer=ee.Reducer.mean(), geometry=roi, scale=SCALE, maxPixels=1e12 #################
         ).get('precipitation')
         return ee.Feature(None, {'month': m, 'precip': mean_value})
     monthly_means_fc = ee.FeatureCollection(months.map(calculate_monthly))
@@ -358,7 +358,7 @@ def get_monthly_total_series(collection, roi, start_year, end_year):
             end_date = start_date.advance(1, 'month')
             total_precip_image = collection.filterDate(start_date, end_date).sum()
             mean_value = total_precip_image.reduceRegion(
-                reducer=ee.Reducer.sum(), geometry=roi, scale=SCALE, maxPixels=1e12 #############
+                reducer=ee.Reducer.mean(), geometry=roi, scale=SCALE, maxPixels=1e12 #############
             ).get('precipitation')
             return ee.Feature(None, {'date': start_date.format('YYYY-MM'), 'precip': mean_value})
         return months.map(map_years_over_months)
