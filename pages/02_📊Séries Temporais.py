@@ -385,7 +385,7 @@ def get_daily_precip(collection, roi, start_year, end_year):
     
     def daily_sum(img):
         total = img.reduceRegion(
-            reducer=ee.Reducer.sum(),
+            reducer=ee.Reducer.mean(),
             geometry=roi,
             scale=SCALE,
             maxPixels=1e12
