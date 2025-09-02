@@ -103,7 +103,7 @@ def get_annual_precipitation(_info, roi_json, start_year, end_year):
                                      .sum()
                                      
         mean_value = total_precip_image.reduceRegion(
-            reducer=ee.Reducer.sum(),
+            reducer=ee.Reducer.mean(),
             geometry=roi,
             scale=scale,
             maxPixels=1e12
@@ -163,7 +163,7 @@ def get_daily_precip(_info, roi_json, start_year, end_year):
     def daily_sum(img):
         # A soma total diária já considera o multiplicador
         total = img.multiply(_info['multiplier']).reduceRegion(
-            reducer=ee.Reducer.sum(),
+            reducer=ee.Reducer.mean(),
             geometry=roi,
             scale=scale,
             maxPixels=1e12
