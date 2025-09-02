@@ -392,15 +392,15 @@ def acumulado_diario(info):
     st.sidebar.header("Filtros")
 
     hoje = date.today()
-    inicio = hoje - timedelta(days=30)
+    inicio = hoje - timedelta(days=35)
 
-    # Busca a última data com dados disponíveis nos últimos 30 dias
+    # Busca a última data com dados disponíveis nos últimos 35 dias
     colecao = ee.ImageCollection(info['id']) \
         .filterDate(str(inicio), str(hoje + timedelta(days=1))) \
         .sort('system:time_start', False)
 
     if colecao.size().getInfo() == 0:
-        st.warning("Nenhum dado disponível nos últimos 30 dias.")
+        st.warning("Nenhum dado disponível nos últimos 35 dias.")
         return
 
     ultima_img = colecao.first()
