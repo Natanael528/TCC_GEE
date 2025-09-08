@@ -148,7 +148,7 @@ def soma_periodo(info, inicio, fim):
 
 
 # --- MODOS DE ANÁLISE ---
-@st.cache_data(show_spinner=True, ttl=3600)
+
 def ultima_imagem(info):
     hoje = date.today()
     inicio = hoje - timedelta(days=40)  # buscar só nos últimos 40 dias
