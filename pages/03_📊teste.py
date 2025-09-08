@@ -43,24 +43,30 @@ with open('style.css')as f:
 DATASETS = {
     'CHIRPS Daily': {
         'id': 'UCSB-CHG/CHIRPS/DAILY',
+        'id2': 'UCSB-CHG/CHIRPS/PENTAD',
         'band': 'precipitation',
         'multiplier': 1,
+        'multiplier2': 1, # Já está em mm/pentad, a soma pentadal funciona
         'start_year': 1981,
         'scale': 5566,
         'name': 'UCSB-CHG CHIRPS Daily',
     },
     'IMERG Daily': {
         'id': 'NASA/GPM_L3/IMERG_V07',
+        'id2': 'NASA/GPM_L3/IMERG_MONTHLY_V07',
         'band': 'precipitation',
         'multiplier': 0.5, # Multiplicador para converter para 24h
+        'multiplier2': 1, # Já está em mm/mês, a soma mensal funciona
         'start_year': 2000,
         'scale': 11132,
         'name': 'NASA GPM IMERG Daily (GPM L3)',
     },
     'GSMAP Standard': {
         'id': 'JAXA/GPM_L3/GSMaP/v8/operational',
+        'id2': 'JAXA/GPM_L3/GSMaP/v8/operational',
         'band': 'hourlyPrecipRate',
         'multiplier': 1, # Já está em mm/hr, a soma diária funciona
+        'multiplier2': 1, # Já está em mm/hr, a soma diária funciona
         'start_year': 2000,
         'scale': 11132,
         'name': 'JAXA GPM GSMaP Standard',
@@ -350,3 +356,6 @@ with tab4:
         st.plotly_chart(fig_daily, use_container_width=True)
     else:
         st.warning("Não há dados diários para o período selecionado.")
+
+
+

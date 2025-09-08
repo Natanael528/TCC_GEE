@@ -5,6 +5,9 @@ import folium
 from datetime import date, timedelta, datetime
 import json
 import tempfile
+import pandas as pd
+import altair as alt
+
 
 # --- Configurações Iniciais e Autenticação do GEE ---
 # Cria arquivo temporário com as credenciais
@@ -38,32 +41,62 @@ PALETA_PRECIPITACAO = ['1621a2', '03ffff', '13ff03', 'efff00', 'ffb103', 'ff2300
 
 # Dicionário com informações detalhadas de cada fonte de dados
 DATASETS = {
-    'GSMAP': {
-        'id': 'JAXA/GPM_L3/GSMaP/v8/operational',
-        'band': 'hourlyPrecipRate',
-        'multiplier': 1, # Já está em mm/hr
-        'start_year': 2000,
-        'name': 'JAXA GPM GSMaP',
+    'CHIRPS': {
+        'id': 'UCSB-CHG/CHIRPS/DAILY',
+        'id2': 'UCSB-CHG/CHIRPS/PENTAD',
+        'band': 'precipitation',
+        'band2': 'precipitation',
+        'multiplier': 1,      # já vem em mm/dia
+        'multiplier2': 1,     # já vem em mm/pentad
+        'temp': False,
+        'start_year': 1981,
+        'scale': 5566,
+        'name': 'CHIRPS',
+        'type': 'daily',      # etiqueta para ajudar a função
     },
     'IMERG': {
-        'id': 'NASA/GPM_L3/IMERG_V07',
+        'id': 'NASA/GPM_L3/IMERG_V07',            # 30 min
+        'id2': 'NASA/GPM_L3/IMERG_MONTHLY_V07',   # mensal
         'band': 'precipitation',
-        'multiplier': 0.5, # Unidade é mm/hr, mas a imagem é a cada 30 min
+        'band2': 'precipitation',
+        'multiplier': 0.5,    # 30 min → mm/24h (48 steps * 0.5 = 24h)
+        'multiplier2': 1,     # 
+        'temp': True,
         'start_year': 2000,
-        'name': 'NASA GPM IMERG',
+        'scale': 11132,
+        'name': 'IMERG',
+        'type': 'subdaily',
     },
-    'CHIRPS': {
-        # Usando CHIRPS Diário para consistência com outras fontes
-        'id': 'UCSB-CHG/CHIRPS/DAILY',
-        'band': 'precipitation',
-        'multiplier': 1, # Já está em mm/dia
-        'start_year': 1981,
-        'name': 'UCSB-CHG CHIRPS',
+    'GSMAP': {
+        'id': 'JAXA/GPM_L3/GSMaP/v8/operational', # horário
+        'id2': 'JAXA/GPM_L3/GSMaP/v8/operational',
+        'band': 'hourlyPrecipRate',
+        'band2': 'hourlyPrecipRate',
+        'multiplier': 1,       # já em mm/h
+        'multiplier2': 1,
+        'temp': False,
+        'start_year': 2000,
+        'scale': 11132,
+        'name': 'GSMaP',
+        'type': 'hourly',
+    },
+    'ERA5': {
+        'id': 'ECMWF/ERA5_LAND/HOURLY',
+        'id2': 'ECMWF/ERA5_LAND/MONTHLY_AGGR',
+        'band': 'total_precipitation',
+        'band2': 'total_precipitation_sum',
+        'multiplier': 1,     # em m, precisa multiplicar por 1000 para mm
+        'multiplier2': 1000, # garante mm no mensal
+        'temp': False,
+        'start_year': 1950,
+        'scale': 11132,
+        'name': 'ECMWF ERA5',
+        'type': 'hourly',
     }
 }
 
 # Ordem fixa para exibição dos mapas
-DATASETS_PARA_COMPARAR = ['GSMAP', 'IMERG', 'CHIRPS']
+DATASETS_PARA_COMPARAR = ['GSMAP', 'IMERG', 'CHIRPS', 'ERA5']
 
 # --- FUNÇÕES AUXILIARES ---
 
@@ -71,7 +104,7 @@ def desenhar_mapa_em_coluna(coluna, image, vis_params, titulo, legenda):
     """Renderiza um mapa geemap dentro de uma coluna específica do Streamlit."""
     with coluna:
         st.subheader(titulo)
-        mapa = geemap.Map(center=[-19, -60], zoom=4, tiles='cartodbdark_matter')
+        mapa = geemap.Map(center=[-19, -60], zoom=3, tiles='cartodbdark_matter')
         
         # Adiciona uma verificação para garantir que a imagem não está vazia
         try:
@@ -81,30 +114,51 @@ def desenhar_mapa_em_coluna(coluna, image, vis_params, titulo, legenda):
             mapa.addLayer(masked_image, vis_params, titulo)
             mapa.add_colorbar(vis_params, label=legenda, background_color='white')
         except Exception as e:
-            st.warning(f"Não foi possível renderizar a camada para {titulo}. Pode não haver dados para o período selecionado. Erro: {e}")
+            st.warning(f"Pode não haver dados para o período selecionado.")
             
         mapa.to_streamlit(height=600)
 
 def obter_soma_periodo(info, inicio, fim):
-    """Filtra e soma uma coleção de imagens para um dado período."""
-    colecao = ee.ImageCollection(info['id']) \
-        .filterDate(inicio, fim) \
-        .select(info['band'])
+    colecao = ee.ImageCollection(info['id']).filterDate(inicio, fim).select(info['band'])
 
-    # O multiplicador é aplicado para normalizar as unidades
-    if info['multiplier'] != 1:
-        colecao = colecao.map(lambda img: img.multiply(info['multiplier']).copyProperties(img, ['system:time_start']))
-        
-    return colecao.sum()
+    # Casos especiais com coleção mensal/pentadal
+    if 'id2' in info and (info['id2'] != info['id']) and (info['type'] in ['monthly', 'pentad']):
+        colecao = ee.ImageCollection(info['id2']).filterDate(inicio, fim).select(info['band2'])
+        return colecao.sum().multiply(info['multiplier2'])
+
+    # IMERG: mm/h → mm/30min → mm/dia
+    if info['name'] == "IMERG":
+        colecao = colecao.map(lambda img: img.multiply(0.5))
+        return colecao.sum()
+
+    # ERA5: m → mm
+    if info['name'] == "ECMWF ERA5":
+        colecao = colecao.map(lambda img: img.multiply(1000))
+        return colecao.sum()
+
+    # GSMaP: já em mm/h → precisa multiplicar por 1h
+    if info['name'] == "GSMaP":
+        colecao = colecao.map(lambda img: img.multiply(1))
+        return colecao.sum()
+
+    # CHIRPS diário: já vem pronto em mm/dia
+    if info['name'] == "CHIRPS":
+        return colecao.sum()
+
+    # fallback
+    return colecao.sum().multiply(info['multiplier'])
+
+
+
 
 # --- MODOS DE ANÁLISE (LÓGICA PRINCIPAL) ---
 
 def processar_comparacao(modo, **kwargs):
     """Função central que busca os dados para os 3 datasets e os exibe em colunas."""
     st.header(f"Comparação de Precipitação - {modo}")
-    
-    col1, col2, col3 = st.columns(3)
-    colunas = [col1, col2, col3]
+
+    col1, col2, col3, col4 = st.columns(4)
+    colunas = [col1, col2, col3, col4]
 
     for i, nome_dataset in enumerate(DATASETS_PARA_COMPARAR):
         info = DATASETS[nome_dataset]
@@ -112,16 +166,16 @@ def processar_comparacao(modo, **kwargs):
         try:
             if modo == "Diário":
                 data_sel = kwargs['data_sel']
-                st.write(f"**Data selecionada:** {data_sel.strftime('%d/%m/%Y')}")
-                inicio = str(data_sel)
-                fim = str(data_sel + timedelta(days=1))
+
+                inicio = ee.Date(data_sel.strftime("%Y-%m-%d"))
+                fim = inicio.advance(1, 'day')
                 img = obter_soma_periodo(info, inicio, fim)
                 vis = {'min': 1, 'max': 50, 'palette': PALETA_PRECIPITACAO}
                 legenda = "Precipitação [mm/dia]"
 
             elif modo == "Mensal":
                 ano, mes_idx, meses = kwargs['ano'], kwargs['mes_idx'], kwargs['meses']
-                st.write(f"**Período selecionado:** {meses[mes_idx-1]} de {ano}")
+
                 inicio = ee.Date.fromYMD(ano, mes_idx, 1)
                 fim = inicio.advance(1, 'month')
                 img = obter_soma_periodo(info, inicio, fim)
@@ -130,13 +184,13 @@ def processar_comparacao(modo, **kwargs):
 
             elif modo == "Anual":
                 ano = kwargs['ano']
-                st.write(f"**Ano selecionado:** {ano}")
+                
                 inicio = f"{ano}-01-01"
                 fim = f"{ano}-12-31"
                 img = obter_soma_periodo(info, inicio, fim)
-                vis = {'min': 200, 'max': 2500, 'palette': PALETA_PRECIPITACAO}
+                vis = {'min': 200, 'max': 3000, 'palette': PALETA_PRECIPITACAO}
                 legenda = "Precipitação [mm/ano]"
-            
+
             else:
                 st.error("Modo de análise desconhecido.")
                 return
@@ -150,7 +204,7 @@ def processar_comparacao(modo, **kwargs):
 
 # --- INTERFACE DO USUÁRIO (SIDEBAR) ---
 st.sidebar.title('Menu de Comparação')
-st.sidebar.info("Selecione a escala temporal e o período. Os mapas das bases de dados GSMAP, IMERG e CHIRPS serão exibidos lado a lado.")
+st.sidebar.info("Selecione a escala temporal e o período. Os mapas das bases de dados GSMAP, CHIRPS, IMERG e ERA5 serão exibidos lado a lado.")
 
 modo_selecionado = st.sidebar.radio(
     "Escolha a Escala Temporal:",
@@ -187,6 +241,10 @@ elif modo_selecionado == "Mensal":
 elif modo_selecionado == "Anual":
     ultimo_ano_completo = ANO_ATUAL - 1
     ano_selecionado = st.sidebar.selectbox("Ano", range(ANO_INICIAL_GLOBAL, ultimo_ano_completo + 1), index=range(ANO_INICIAL_GLOBAL, ultimo_ano_completo + 1).index(ultimo_ano_completo))
-    
     if st.sidebar.button("Gerar Mapas", use_container_width=True):
         processar_comparacao("Anual", ano=ano_selecionado)
+        st.sidebar.warning('Atenção: alguns plots podem demorar um pouco para carregar devido ao volume de dados anual.')
+
+
+
+

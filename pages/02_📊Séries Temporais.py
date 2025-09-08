@@ -377,31 +377,32 @@ def get_monthly_total_series(collection, roi, start_year, end_year):
         df = df[(df['date'] >= start_date_pd) & (df['date'] <= end_date_pd)]
     return df
 
+
 def get_daily_precip(collection, roi, start_year, end_year):
     start_date = ee.Date(f"{start_year}-01-01")
     end_date = ee.Date(f"{end_year}-12-31")
-    
-    daily_collection = collection.filterDate(start_date, end_date).filterBounds(roi)
-    
-    def daily_sum(img):
-        total = img.reduceRegion(
-            reducer=ee.Reducer.mean(),
-            geometry=roi,
-            scale=SCALE,
-            maxPixels=1e12
-        ).get('precipitation')
-        date = img.date().format('YYYY-MM-dd')
-        return ee.Feature(None, {'date': date, 'precip': total})
-    
-    fc = ee.FeatureCollection(daily_collection.map(daily_sum))
-    data = fc.getInfo()['features']
-    rows = [f['properties'] for f in data]
 
-    df = pd.DataFrame(rows)
-    df['date'] = pd.to_datetime(df['date'])
+    daily_collection = collection.filterDate(start_date, end_date).filterBounds(roi)
+
+    # Usando getRegion em vez de map+getInfo
+    data = daily_collection.getRegion(roi, SCALE).getInfo()
+
+    # A tabela vem com metadados, precisamos filtrar
+    header = data[0]
+    rows = data[1:]
+    df = pd.DataFrame(rows, columns=header)
+
+    # Pega apenas data e precipitação
+    df = df[['time', 'precipitation']].dropna()
+    df['date'] = pd.to_datetime(df['time'], unit='ms')
+    df.rename(columns={'precipitation': 'precip'}, inplace=True)
     df['precip'] = pd.to_numeric(df['precip'], errors='coerce')
     df = df.dropna(subset=['precip']).sort_values('date').reset_index(drop=True)
+
     return df
+
+
+
 
 # --- Interface do Usuário (Sidebar) ---
 st.sidebar.header("1. Selecione a Região")
