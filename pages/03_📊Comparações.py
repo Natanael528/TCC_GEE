@@ -85,7 +85,7 @@ DATASETS = {
         'id2': 'ECMWF/ERA5_LAND/MONTHLY_AGGR',
         'band': 'total_precipitation',
         'band2': 'total_precipitation_sum',
-        'multiplier': 1,     # em m, precisa multiplicar por 1000 para mm
+        'multiplier': 1000,     # em m, precisa multiplicar por 1000 para mm
         'multiplier2': 1000, # garante mm no mensal
         'temp': False,
         'start_year': 1950,
