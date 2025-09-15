@@ -80,23 +80,11 @@ DATASETS = {
         'name': 'GSMaP',
         'type': 'hourly',
     },
-    'ERA5': {
-        'id': 'ECMWF/ERA5_LAND/HOURLY',
-        'id2': 'ECMWF/ERA5_LAND/MONTHLY_AGGR',
-        'band': 'total_precipitation',
-        'band2': 'total_precipitation_sum',
-        'multiplier': 1,     # em m, precisa multiplicar por 1000 para mm
-        'multiplier2': 1000, # garante mm no mensal
-        'temp': False,
-        'start_year': 1950,
-        'scale': 11132,
-        'name': 'ECMWF ERA5',
-        'type': 'hourly',
-    }
+
 }
 
 # Ordem fixa para exibição dos mapas
-DATASETS_PARA_COMPARAR = ['GSMAP', 'IMERG', 'CHIRPS', 'ERA5']
+DATASETS_PARA_COMPARAR = ['GSMAP', 'IMERG', 'CHIRPS']
 
 # --- FUNÇÕES AUXILIARES ---
 
@@ -131,11 +119,6 @@ def obter_soma_periodo(info, inicio, fim):
         colecao = colecao.map(lambda img: img.multiply(0.5))
         return colecao.sum()
 
-    # ERA5: m → mm
-    if info['name'] == "ECMWF ERA5":
-        colecao = colecao.map(lambda img: img.multiply(1000))
-        return colecao.sum()
-
     # GSMaP: já em mm/h → precisa multiplicar por 1h
     if info['name'] == "GSMaP":
         colecao = colecao.map(lambda img: img.multiply(1))
@@ -157,8 +140,8 @@ def processar_comparacao(modo, **kwargs):
     """Função central que busca os dados para os 3 datasets e os exibe em colunas."""
     st.header(f"Comparação de Precipitação - {modo}")
 
-    col1, col2, col3, col4 = st.columns(4)
-    colunas = [col1, col2, col3, col4]
+    col1, col2, col3 = st.columns(3)
+    colunas = [col1, col2, col3]
 
     for i, nome_dataset in enumerate(DATASETS_PARA_COMPARAR):
         info = DATASETS[nome_dataset]
@@ -204,7 +187,7 @@ def processar_comparacao(modo, **kwargs):
 
 # --- INTERFACE DO USUÁRIO (SIDEBAR) ---
 st.sidebar.title('Menu de Comparação')
-st.sidebar.info("Selecione a escala temporal e o período. Os mapas das bases de dados GSMAP, CHIRPS, IMERG e ERA5 serão exibidos lado a lado.")
+st.sidebar.info("Selecione a escala temporal e o período. Os mapas das bases de dados GSMAP, CHIRPS e IMERG serão exibidos lado a lado.")
 
 modo_selecionado = st.sidebar.radio(
     "Escolha a Escala Temporal:",
