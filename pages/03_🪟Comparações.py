@@ -228,6 +228,3 @@ elif modo_selecionado == "Anual":
         processar_comparacao("Anual", ano=ano_selecionado)
         st.sidebar.warning('Atenção: alguns plots podem demorar um pouco para carregar devido ao volume de dados anual.')
 
-
-
-

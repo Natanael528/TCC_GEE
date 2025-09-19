@@ -184,10 +184,34 @@ def get_monthly_total_series(collection, roi, start_year, end_year, band_name, s
 def get_monthly_climatology(collection, roi, start_year, end_year, band_name, scale, multiplier):
     months = range(1, 13)
     features = []
+
     for m in months:
-        coll_month = collection.filter(ee.Filter.calendarRange(m, m, 'month')).sum().multiply(multiplier)
-        mean_val = coll_month.reduceRegion(reducer=ee.Reducer.mean(), geometry=roi, scale=scale, maxPixels=1e13).get(band_name)
+        # filtra só o mês m em todos os anos
+        monthly_coll = collection.filter(ee.Filter.calendarRange(m, m, 'month'))
+
+        # acumula precipitação dentro de cada mês/ano
+        def month_sum(img):
+            year = img.date().get('year')
+            month_coll = collection.filterDate(
+                ee.Date.fromYMD(year, m, 1),
+                ee.Date.fromYMD(year, m, 1).advance(1, 'month')
+            )
+            return month_coll.sum().multiply(multiplier).set({'year': year, 'month': m})
+
+        monthly_totals = monthly_coll.map(month_sum)
+
+        # média interanual
+        month_mean = monthly_totals.mean()
+
+        mean_val = month_mean.reduceRegion(
+            reducer=ee.Reducer.mean(),
+            geometry=roi,
+            scale=scale,
+            maxPixels=1e13
+        ).get(band_name)
+
         features.append(ee.Feature(None, {'month': m, 'precip': mean_val}))
+
     monthly_fc = ee.FeatureCollection(features)
     df = _fc_to_df(monthly_fc)
     if 'month' in df.columns:
@@ -230,7 +254,7 @@ dataset_multiplier = selected_dataset['multiplier']
 st.sidebar.divider()
 
 st.sidebar.header("2. Selecione a Região")
-tipo_analise = st.sidebar.radio("Como deseja selecionar a área?", ('Por Divisão Política', 'Por Ponto (Lat/Lon)', 'Desenhar no Mapa'), key='tipo_analise')
+tipo_analise = st.sidebar.radio("Como deseja selecionar a área?", ('Por Divisão Política', 'Por Quadrado (Lat/Lon)', 'Por Ponto (Lat/Lon)', 'Desenhar no Mapa'), key='tipo_analise')
 
 roi = None
 local_selecionado_nome = "Área de Interesse"
@@ -260,6 +284,19 @@ if tipo_analise == 'Por Divisão Política':
     except Exception as e:
         st.sidebar.error(f"Não foi possível carregar a lista de estados/municípios. Erro: {e}")
         st.stop()
+
+elif tipo_analise == 'Por Quadrado (Lat/Lon)':
+    st.sidebar.markdown("Informe as coordenadas dos limites do quadrado/retângulo.")
+    lat_min = st.sidebar.number_input("Latitude mínima (Sul)", -90.0, 90.0, -22.5, format="%.4f")
+    lat_max = st.sidebar.number_input("Latitude máxima (Norte)", -90.0, 90.0, -22.35, format="%.4f")
+    lon_min = st.sidebar.number_input("Longitude mínima (Oeste)", -180.0, 180.0, -45.55, format="%.4f")
+    lon_max = st.sidebar.number_input("Longitude máxima (Leste)", -180.0, 180.0, -45.35, format="%.4f")
+
+    # Cria retângulo no GEE
+    roi = ee.Geometry.Rectangle([lon_min, lat_min, lon_max, lat_max])
+    local_selecionado_nome = f"Quadrado: [{lat_min}, {lon_min}] até [{lat_max}, {lon_max}]"
+        
+        
 elif tipo_analise == 'Por Ponto (Lat/Lon)':
     st.sidebar.markdown("Digite as coordenadas e o raio.")
     lat = st.sidebar.number_input("Latitude", -90.0, 90.0, -19.92, format="%.4f")
@@ -433,5 +470,7 @@ with tab5:
         fig_annual.add_trace(go.Scatter(x=df_annual['year'], y=[media_historica] * len(df_annual), mode='lines', line=dict(color='yellow', dash='dash'), name=f'Média Histórica ({media_historica:.1f} mm)'))
         fig_annual.update_layout(title=f"Precipitação Anual e Anomalia em Relação à Média<br><b>{local_selecionado_nome}</b>", xaxis_title="Ano", yaxis_title="Precipitação Anual Acumulada (mm)", template="plotly_white")
         st.plotly_chart(fig_annual, use_container_width=True)
+        tab10, tab20, tab30, tab40 = st.columns(4)
+        tab40.markdown("**Nota:** Barras azuis indicam anos com precipitação acima da média histórica, enquanto barras vermelhas indicam anos abaixo da média, a linha amarela representa a média histórica calculada pela média em relação ao período selecionado.")
     else:
         st.warning("Não há dados anuais para o período selecionado.")

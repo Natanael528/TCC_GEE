@@ -74,7 +74,7 @@ DATASETS = {
         'start_year': 2000,
         'name': 'GSMaP',
         'vis_params': {
-            'ultima_imagem': {'min': 0.1, 'max': 10, 'palette': PALETA_PRECIPITACAO},
+            'ultima_imagem': {'min': 0.1, 'max': 15, 'palette': PALETA_PRECIPITACAO},
             'diario': {'min': 0.5, 'max': 50, 'palette': PALETA_PRECIPITACAO},
             'mensal': {'min': 50, 'max': 600, 'palette': PALETA_PRECIPITACAO},
             'anual': {'min': 200, 'max': 3000, 'palette': PALETA_PRECIPITACAO},
@@ -156,30 +156,9 @@ def ultima_imagem(info):
 
     imagens_disponiveis = colecao.aggregate_array("system:time_start").getInfo()
     if not imagens_disponiveis:
-        st.warning("Nenhuma imagem encontrada nos últimos 40 dias.")
+        st.warning("Nenhuma imagem encontrada.")
         return
 
-    if st.sidebar.checkbox("Selecionar imagem manualmente"):
-        # Lista formatada para o usuário
-        datas_formatadas = [
-            datetime.fromtimestamp(t / 1000).strftime("%d/%m/%Y %H:%M")
-            for t in imagens_disponiveis
-        ]
-
-        data_sel_str = st.sidebar.selectbox(
-            "Imagens disponíveis:",
-            options=datas_formatadas,
-            index=0,
-            key="dataset_ultima_imagem"
-        )
-
-        # Converter de volta para timestamp original
-        idx = datas_formatadas.index(data_sel_str)
-        timestamp_sel = imagens_disponiveis[idx]
-
-        # Seleciona a imagem correspondente
-        img = colecao.filterMetadata("system:time_start", "equals", timestamp_sel).first()
-        data_img = data_sel_str
     else:
         # Última imagem automaticamente
         img = colecao.first()
@@ -202,6 +181,99 @@ def ultima_imagem(info):
         f"Imagem para a data - {data_img}",
         "Precipitação Instantânea"
     )
+
+
+def selecionar_imagem(info):
+    """Permite selecionar uma data e escolher a lista de horas disponíveis para essa data."""
+    st.sidebar.header("Filtros")
+
+    ultima_data = get_ultima_data_disponivel(info)
+    if not ultima_data:
+        st.warning("Não foi possível encontrar imagens recentes com dados disponíveis.")
+        return
+
+    # Seleção de data (máximo = última data disponível)
+    data_sel = st.sidebar.date_input("Data", max_value=ultima_data, value=ultima_data)
+
+    # Construir intervalo de busca como strings ISO (evita passar objetos ee.Date como str)
+    start_str = data_sel.strftime('%Y-%m-%d')
+    end_str = (data_sel + timedelta(days=1)).strftime('%Y-%m-%d')
+
+    colecao = (
+        ee.ImageCollection(info['id'])
+        .filterDate(start_str, end_str)
+        .sort('system:time_start', False)
+    )
+
+    # Obter timestamps disponíveis para a data (ms desde epoch)
+    try:
+        timestamps = colecao.aggregate_array('system:time_start').getInfo() or []
+    except Exception as e:
+        st.error(f"Erro ao listar imagens para a data selecionada: {e}")
+        return
+
+    if not timestamps:
+        st.warning("Nenhuma imagem encontrada para a data selecionada.")
+        return
+
+    # Mapear timestamps para rótulos legíveis (UTC) e manter ordem (coleção já ordenada mais recente primeiro)
+    labels = []
+    ts_map = {}
+    for ts in timestamps:
+        dt = datetime.utcfromtimestamp(ts / 1000.0)
+        label = dt.strftime("%H:%M")
+        # se houver colisão no rótulo (mesma hora:minuto), acrescenta segundos para distinguir
+        if label in ts_map:
+            label = dt.strftime("%H:%M:%S")
+        if label in ts_map:
+            # como último recurso, inclui milissegundos
+            label = dt.strftime("%H:%M:%S.%f")[:-3]
+        ts_map[label] = ts
+        labels.append(label)
+
+    # Remove duplicados preservando ordem
+    seen = set()
+    options = []
+    for l in labels:
+        if l not in seen:
+            options.append(l)
+            seen.add(l)
+
+    # Índice padrão para a opção mais recente (primeiro da coleção ordenada)
+    default_index = 0
+    hora_sel_label = st.sidebar.selectbox("Hora (UTC)", options, index=default_index)
+
+    selected_ts = ts_map[hora_sel_label]
+
+    # Tenta obter a imagem com o timestamp exato; se falhar, procura num pequeno intervalo de ±30 min
+    img = colecao.filter(ee.Filter.eq('system:time_start', int(selected_ts))).first()
+    if img is None:
+        ts_dt = datetime.utcfromtimestamp(selected_ts / 1000.0)
+        start_window = (ts_dt - timedelta(minutes=30)).strftime('%Y-%m-%dT%H:%M:%S')
+        end_window = (ts_dt + timedelta(minutes=30)).strftime('%Y-%m-%dT%H:%M:%S')
+        img = colecao.filterDate(start_window, end_window).first()
+        if img is None:
+            st.warning("Não foi possível localizar a imagem para a hora selecionada.")
+            return
+
+    data_img = datetime.utcfromtimestamp(selected_ts / 1000.0).strftime("%d/%m/%Y - %H:%M")
+
+    # Visualização
+    vis = info['vis_params']['ultima_imagem']
+    imagem_final = (
+        img.select(info['band'])
+        .multiply(info['multiplier'])
+        .updateMask(img.select(info['band']).gt(vis['min']))
+    )
+
+    desenhar_mapa(
+        imagem_final,
+        vis,
+        f"Imagem para a data - {data_img}",
+        "Precipitação Instantânea"
+    )
+
+
 
 
 def acumulado_diario(info):
@@ -293,6 +365,8 @@ def acumulado_mensal(info):
 
     vis = info['vis_params']['mensal']
     imagem_final = img_soma.updateMask(img_soma.gt(vis['min']))
+    
+    st.sidebar.warning("Os dados mensais são acumulados a partir de dados diários, dependendo do dataset, o que pode levar a tempos de processamento mais longos.")
 
     desenhar_mapa(
         imagem_final,
@@ -341,7 +415,8 @@ info_dataset = DATASETS[dataset_selecionado]
 st.sidebar.divider()
 
 modos = {
-    "Última Imagem": ultima_imagem,
+    "Última Imagem disponível": ultima_imagem,
+    "Selecionar Imagem por Data": selecionar_imagem,
     "Acumulado Diário": acumulado_diario,
     "Acumulado Mensal": acumulado_mensal,
     "Acumulado Anual": acumulado_anual
@@ -350,14 +425,24 @@ modos = {
 # CHIRPS Daily não é ideal para "Última Imagem" por ter latência de ~2 dias
 # e o Pentad (5 dias) não representa uma "imagem instantânea".
 if dataset_selecionado == "CHIRPS":
-    modos.pop("Última Imagem", None)
+    modos.pop("Última Imagem disponível", None)
+    modos.pop("Selecionar Imagem por Data", None)
 
-modo_selecionado = st.sidebar.radio("Escala Temporal:", list(modos.keys()))
+modo_selecionado = st.sidebar.radio("**Escala Temporal:**", list(modos.keys()))
 
 st.sidebar.divider()
-st.sidebar.write(f"**Fonte:** {info_dataset['name']} (desde {info_dataset['start_year']})")
 
 # Executa a função do modo selecionado
 if modo_selecionado:
     st.header(f"{info_dataset['name']} - {modo_selecionado}")
     modos[modo_selecionado](info_dataset)
+
+if modo_selecionado == "Acumulado Diário":
+    st.sidebar.info("Os dados diários são acumulados a partir de 0h00 até 23h59 UTC.", icon="⏳")
+    st.sidebar.divider()
+    st.sidebar.write(f"**Fonte:** {info_dataset['name']} (desde {info_dataset['start_year']})")
+    
+else:
+    st.sidebar.divider()
+    st.sidebar.write(f"**Fonte:** {info_dataset['name']} (desde {info_dataset['start_year']})")
+

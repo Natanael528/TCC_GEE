@@ -1,209 +1,3 @@
-# import streamlit as st
-# import ee
-# import geemap.foliumap as geemap 
-# import folium
-# from datetime import date, timedelta
-# import json
-# import tempfile
-
-# # Configurações iniciais do Streamlit
-# # Cria arquivo temporário com as credenciais
-# service_account_info = dict(st.secrets["earthengine"])
-
-# with tempfile.NamedTemporaryFile(mode='w+', suffix='.json', delete=False) as f:
-#     json.dump(service_account_info, f)
-#     f.flush()
-#     credentials = ee.ServiceAccountCredentials(service_account_info["client_email"], f.name)
-#     ee.Initialize(credentials)
-
-# # ee.Authenticate()
-# # ee.Initialize(project='d2021028876')
-
-
-
-# st.set_page_config(
-#     layout='wide',
-#     page_title='HydroGEE Analytics | Início',
-#     initial_sidebar_state='collapsed',
-#     menu_items={
-#         'About': 'Aplicativo desenvolvido por Natanael Silva Oliveira para o TCC de Ciências Atmosféricas - UNIFEI.',
-#         'Report a bug': 'mailto:natanaeloliveira2387@gmail.com'
-#     },
-#     page_icon='💧'
-# )
-
-# with open('style.css')as f:
-#     st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html = True)
-    
-# # --- Configurações da Página e Inicialização do GEE ---
-# # Bloco para inicializar o GEE de forma segura com st.secrets
-# # Este bloco é executado apenas uma vez graças ao cache do Streamlit
-# @st.cache_resource
-# def initialize_gee():
-#     try:
-#         service_account_info = dict(st.secrets["earthengine"])
-#         with tempfile.NamedTemporaryFile(mode='w+', suffix='.json', delete=False) as f:
-#             json.dump(service_account_info, f)
-#             f.flush()
-#             credentials = ee.ServiceAccountCredentials(service_account_info["client_email"], f.name)
-#             ee.Initialize(credentials, project=credentials.project_id)
-#         print("GEE Inicializado com sucesso.")
-#     except Exception as e:
-#         st.error("Ocorreu um erro ao inicializar o Google Earth Engine.")
-#         st.error(f"Detalhes do erro: {e}")
-#         st.stop()
-
-# initialize_gee()
-
-
-# # --- Funções de GEE em Cache para Performance ---
-
-# # Usar o cache de dados garante que essa operação complexa do GEE
-# # seja executada apenas uma vez, tornando a página inicial muito mais rápida.
-# @st.cache_data
-# def create_brazil_annual_map():
-#     """
-#     Cria e retorna um mapa geemap com a precipitação anual de 2023 para o Brasil.
-#     """
-#     try:
-#         # Carrega os limites do Brasil
-#         countries = ee.FeatureCollection('USDOS/LSIB_SIMPLE/2017')
-#         brazil = countries.filter(ee.Filter.eq('country_na', 'Brazil'))
-
-#         # Carrega a coleção CHIRPS para um ano de referência (ex: 2023)
-#         precip_collection = ee.ImageCollection('UCSB-CHG/CHIRPS/PENTAD') \
-#             .filter(ee.Filter.date('2023-01-01', '2023-12-31')) \
-#             .select('precipitation')
-
-#         # Soma todas as imagens para obter o acumulado anual
-#         annual_precipitation = precip_collection.sum().clip(brazil)
-
-#         # Parâmetros de visualização
-#         palette = ['#1621a2', '#03ffff', '#13ff03', '#efff00', '#ffb103', '#ff2300']
-#         vis_params = {'min': 200.0, 'max': 2500.0, 'palette': palette}
-
-#         # Cria o mapa
-#         m = geemap.Map(center=[-15, -55], zoom=4, tiles=None)
-#         m.add_basemap('CartoDB.DarkMatter')
-#         m.addLayer(
-#             annual_precipitation,
-#             vis_params,
-#             'Precipitação Anual (2023)'
-#         )
-#         return m
-#     except ee.ee_exception.EEException as e:
-#         st.warning(f"Não foi possível gerar o mapa de exemplo. Erro no GEE: {e}")
-#         return None
-
-# # --- ESTRUTURA DA PÁGINA INICIAL ---
-
-# # --- 1. Seção de Apresentação (Hero Section) ---
-# st.title("💧 HydroGEE Analytics")
-# st.markdown("##### Sua plataforma para análise de dados de precipitação com o poder do Google Earth Engine.")
-# st.write("---")
-
-# col1, col2 = st.columns([0.6, 0.4])
-
-# with col1:
-#     st.markdown("""
-#     O **HydroGEE Analytics** oferece ferramentas intuitivas para explorar, visualizar e analisar padrões de chuva em todo o território brasileiro.
-#     Navegue pelas nossas ferramentas na barra lateral para:
-
-#     - **Visualizar mapas** de precipitação em diferentes escalas de tempo (instantâneo, diário, mensal e anual).
-#     - **Gerar gráficos e séries temporais** para análises detalhadas por estado ou município.
-
-#     Tudo isso processado em nuvem, de forma rápida e eficiente.
-#     """)
-#     st.info("👈 **Para começar, escolha uma das ferramentas de análise na barra lateral à esquerda.**", icon="💡")
-
-
-# with col2:
-#     with st.spinner("Carregando mapa de exemplo..."):
-#         mapa_exemplo = create_brazil_annual_map()
-#         if mapa_exemplo:
-#             mapa_exemplo.to_streamlit(height=400)
-
-
-
-# st.write("---")
-
-
-# # --- 2. Seção de Funcionalidades ---
-# st.header("Nossas Ferramentas de Análise")
-# st.write("")
-
-# c1, c2 = st.columns(2)
-
-# with c1:
-#     with st.container(border=True):
-#         st.markdown("#### 🗺️ Visualizador de Mapas")
-#         st.write("""
-#         Visualize a distribuição espacial da precipitação em todo o Brasil. Ideal para entender a cobertura e intensidade dos eventos de chuva.
-#         - **Escalas:** Instantânea, Diária, Mensal e Anual.
-#         - **Fontes:** GPM IMERG (alta resolução temporal) e CHIRPS (longo período histórico).
-#         - **Recursos:** Mapa interativo com zoom, legenda e seleção de período.
-#         """)
-
-# with c2:
-#     with st.container(border=True):
-#         st.markdown("#### 📊 Análise por Região")
-#         st.write("""
-#         Extraia dados quantitativos para uma localidade específica e analise o comportamento da chuva ao longo do tempo.
-#         - **Seleção:** Escolha qualquer estado ou município do Brasil.
-#         - **Gráficos:** Precipitação total anual e climatologia média mensal.
-#         - **Objetivo:** Identificar tendências, sazonalidade e anomalias.
-#         """)
-
-# st.write("---")
-
-# # --- 3. Seção sobre as Fontes de Dados ---
-# st.header("Fontes de Dados Confiáveis")
-# st.write("")
-
-# d1, d2 = st.columns(2)
-
-# with d1:
-#      with st.container(border=True):
-#         st.subheader("GPM IMERG")
-#         st.write("""
-#         O *Integrated Multi-satellitE Retrievals for GPM* é um produto de alta resolução da NASA que fornece estimativas de precipitação a cada 30 minutos.
-#         É ideal para a análise de eventos de chuva de curta duração.
-#         - **Resolução Espacial:** ~10 km
-#         - **Disponibilidade:** 2000-Presente
-#         """)
-
-# with d2:
-#     with st.container(border=True):
-#         st.subheader("CHIRPS PENTAD")
-#         st.write("""
-#         O *Climate Hazards Group InfraRed Precipitation with Station data* é um banco de dados de mais de 40 anos, combinando dados de satélite com observações de estações.
-#         É excelente para análises climatológicas e estudos de longo prazo.
-#         - **Resolução Espacial:** ~5.5 km
-#         - **Disponibilidade:** 1981-Presente
-#         """)
-
-# # --- 4. Seção de Instruções ---
-# with st.expander("🤔 Como usar o aplicativo? (Clique para expandir)"):
-#     st.markdown("""
-#         1.  **Navegue na barra lateral:** Escolha entre `Visualizador de Mapas` ou `Análise por Região`.
-#         2.  **Configure os filtros:** Dependendo da ferramenta, você definirá o período (data, mês, ano) ou a localidade (estado, município).
-#         3.  **Execute a Análise:** Os dados serão processados no Google Earth Engine e exibidos na tela.
-#         4.  **Interaja com os resultados:** Use o zoom nos mapas, passe o mouse sobre os gráficos para ver valores e explore os dados gerados.
-#     """)
-
-# # --- 5. Rodapé ---
-# st.markdown("---")
-# st.markdown(
-#     """
-#     <div style="text-align: center; color: grey;">
-#         Desenvolvido com ❤️ por Natanael Silva Oliveira | TCC Ciências Atmosféricas - UNIFEI 2025
-#     </div>
-#     """,
-#     unsafe_allow_html=True
-# )
-
-
-
 
 import streamlit as st
 import ee
@@ -362,27 +156,36 @@ with d1:
     with st.container(border=True):
         st.subheader("CHIRPS")
         st.write("""
-        O *Climate Hazards Group InfraRed Precipitation with Station data* é um banco de dados de **mais de 40 anos**. Combina dados de satélite com milhares de estações em solo, sendo ideal para **análises climatológicas** e estudos de longo prazo.
+        O *Climate Hazards Group InfraRed Precipitation with Station data* (CHIRPS) é um conjunto de dados de precipitação com mais de *40 anos* de registros contínuos. Ele combina observações de satélite com medições em milhares de estações pluviométricas espalhadas pelo globo, oferecendo informações consistentes para análises climatológicas e estudos de longo prazo. Sua resolução espacial é de aproximadamente 5,5 km, e a série histórica cobre o período de 1981 até o presente.
+
+        Um detalhe importante: o CHIRPS disponibiliza dados apenas sobre os continentes, e não sobre os oceanos. Isso acontece porque a principal utilidade do banco é monitorar impactos da chuva em áreas habitadas, agricultura e recursos hídricos, que estão no continente. Além disso, a integração com estações meteorológicas em solo — um dos diferenciais do CHIRPS — só é possível em terra firme, já que não existem redes equivalentes em mar aberto. Para precipitação sobre oceanos, outros produtos satelitais, como o GPM (Global Precipitation Measurement), são mais indicados.
         - **Resolução Espacial:** ~5.5 km
         - **Disponibilidade:** 1981-Presente
+        - **Referência:** [CHIRPS](https://developers.google.com/earth-engine/datasets/catalog/UCSB-CHG_CHIRPS_DAILY?hl=pt-br#citations)
         """)
 
 with d2:
     with st.container(border=True):
         st.subheader("GPM IMERG")
         st.write("""
-        O *Integrated Multi-satellitE Retrievals for GPM* (NASA) é um produto de **alta resolução temporal** que fornece estimativas de chuva a cada 30 minutos. É ideal para a análise de **eventos de curta duração** e monitoramento quase em tempo real.
+        O *Integrated Multi-satellitE Retrievals for GPM* (IMERG), desenvolvido pela NASA dentro da missão Global Precipitation Measurement (GPM), é um dos principais produtos globais de precipitação por satélite. Ele oferece estimativas de chuva com alta resolução temporal, atualizadas a cada *30 minutos*, o que o torna ideal para o acompanhamento de eventos de curta duração, como tempestades intensas, enchentes repentinas e monitoramento quase em tempo real. Sua resolução espacial é de cerca de *10 km*, cobrindo praticamente todo o globo.
+
+        Ao contrário do CHIRPS, que se concentra nos continentes, o IMERG fornece dados tanto sobre terra quanto sobre os oceanos, já que se baseia em uma constelação de satélites de micro-ondas e infravermelho capazes de observar a atmosfera globalmente. Isso o torna especialmente útil para o estudo de sistemas meteorológicos de grande escala, como ciclones tropicais, frentes frias e zonas de convergência.
         - **Resolução Espacial:** ~10 km
         - **Disponibilidade:** 2000-Presente
+        - **Referência:** [IMERG](https://developers.google.com/earth-engine/datasets/catalog/NASA_GPM_L3_IMERG_V07?hl=pt-br#citations)
         """)
 
 with d3:
     with st.container(border=True):
         st.subheader("GPM GSMaP")
         st.write("""
-        O *Global Satellite Mapping of Precipitation* (JAXA) é outro produto da missão GPM. Fornece dados **horários** e é conhecido por sua rapidez na disponibilização, sendo uma ótima fonte para o **acompanhamento de sistemas convectivos**.
+        O *Global Satellite Mapping of Precipitation* (GSMaP), desenvolvido pela JAXA em parceria com o projeto GPM, fornece estimativas de precipitação com resolução horária e aproximadamente 10 km de detalhamento espacial. Um de seus grandes diferenciais é a rapidez na disponibilização dos dados, o que o torna muito útil para o acompanhamento de sistemas convectivos, como tempestades tropicais e eventos intensos de curta duração.
+
+        Assim como o IMERG, o GSMaP oferece cobertura global, incluindo tanto continentes quanto oceanos, graças à constelação de satélites de micro-ondas e infravermelho que alimentam o sistema. Essa abrangência é essencial para aplicações em regiões remotas e em áreas oceânicas, permitindo o monitoramento de ciclones, zonas de convergência e sistemas de grande escala. Além disso, sua agilidade na atualização torna o GSMaP uma referência em contextos de monitoramento operacional.
         - **Resolução Espacial:** ~10 km
         - **Disponibilidade:** 2000-Presente
+        - **Referência:** [GSMaP](https://developers.google.com/earth-engine/datasets/catalog/JAXA_GPM_L3_GSMaP_v8_operational?hl=pt-br#citations)
         """)
 
 # --- 4. Seção de Instruções ---
