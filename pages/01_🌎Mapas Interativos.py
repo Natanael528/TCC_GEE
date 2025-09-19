@@ -438,11 +438,9 @@ if modo_selecionado:
 
 if modo_selecionado == "Acumulado Diário":
     st.sidebar.info("Os dados diários são acumulados a partir de 0h00 até 23h59 UTC.", icon="⏳")
-    st.sidebar.divider()
     st.sidebar.write(f"**Fonte:** {info_dataset['name']} (desde {info_dataset['start_year']})")
 
 elif modo_selecionado in ['Última Imagem disponível', 'Selecionar Imagem por Data']:
     st.sidebar.write(f"**Fonte:** {info_dataset['name']} (desde {info_dataset['start_year']})")
 else:
-    st.sidebar.divider()
     st.sidebar.write(f"**Fonte:** {info_dataset['name']} (desde {info_dataset['start_year']})")
