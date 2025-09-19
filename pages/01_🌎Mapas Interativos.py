@@ -139,7 +139,7 @@ def soma_periodo(info, inicio, fim, para_agregados=False):
 
 def ultima_imagem(info):
     """Mostra a imagem mais recente ou permite escolher entre as últimas disponíveis."""
-    st.sidebar.header("Filtros")
+    
 
     ultima_data = get_ultima_data_disponivel(info)
     if not ultima_data:
