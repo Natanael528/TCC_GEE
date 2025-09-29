@@ -66,13 +66,14 @@ def create_brazil_annual_map():
         vis_params = {'min': 200.0, 'max': 3000.0, 'palette': palette}
 
         # Cria o mapa com um tema escuro
-        m = geemap.Map(center=[-15, -55], zoom=4, tiles=None)
+        m = geemap.Map(center=[-15, -55], zoom=3, tiles=None)
         m.add_basemap('CartoDB.DarkMatter')
         m.addLayer(
             annual_precipitation,
             vis_params,
             'Precipitação Anual (2023)'
         )
+        
         return m
     except ee.ee_exception.EEException as e:
         st.warning(f"Não foi possível gerar o mapa de exemplo. Erro no GEE: {e}")
