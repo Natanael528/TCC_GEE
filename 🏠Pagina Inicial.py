@@ -89,7 +89,7 @@ col1, col2 = st.columns([0.6, 0.4])
 
 with col1:
     st.markdown("""
-    O * AquaGEE Analytics** oferece ferramentas intuitivas para explorar, visualizar e analisar padrões de chuva em todo o território brasileiro.
+    O **AquaGEE Analytics** oferece ferramentas intuitivas para explorar, visualizar e analisar padrões de chuva em todo o território brasileiro.
     Utilizando dados de satélite processados em nuvem, você pode gerar mapas, séries temporais e comparações de forma rápida e eficiente.
 
     Navegue pelas nossas ferramentas para:
