@@ -28,7 +28,7 @@ except Exception as e:
 # --- Configuração da Página do Streamlit ---
 st.set_page_config(
     layout='wide',
-    page_title='HydroGEE Analytics | Início',
+    page_title='AquaGEE Analytics | Início',
     initial_sidebar_state='expanded',
     menu_items={
         'About': 'Aplicativo desenvolvido por Natanael Silva Oliveira para o TCC de Ciências Atmosféricas - UNIFEI.',

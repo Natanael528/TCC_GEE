@@ -23,7 +23,7 @@ with tempfile.NamedTemporaryFile(mode='w+', suffix='.json', delete=False) as f:
 
 st.set_page_config(
     layout='wide',
-    page_title='HydroGEE Analytics | Início',
+    page_title='AquaGEE Analytics | Início',
     initial_sidebar_state='expanded',
     menu_items={
         'About': 'Aplicativo desenvolvido por Natanael Silva Oliveira para o TCC de Ciências Atmosféricas - UNIFEI.',
@@ -131,8 +131,61 @@ def obter_soma_periodo(info, inicio, fim):
     # fallback
     return colecao.sum().multiply(info['multiplier'])
 
+def obter_series_temporais(info, escala, inicio_python, fim_python, geometry):
+    """Retorna lista de dicts {'date':..., 'dataset':..., 'value':...} para o periodo e escala."""
+    resultados = []
+    try:
+        if escala == "Diário":
+            cur = inicio_python
+            while cur <= fim_python:
+                inicio = ee.Date(cur.strftime("%Y-%m-%d"))
+                fim = inicio.advance(1, 'day')
+                img = obter_soma_periodo(info, inicio, fim)
+                rr = img.reduceRegion(ee.Reducer.mean(), geometry, info['scale']).getInfo()
+                val = None
+                if rr:
+                    # pega o primeiro valor retornado
+                    val = list(rr.values())[0]
+                resultados.append({'date': cur.strftime("%Y-%m-%d"), 'dataset': info['name'], 'value': val or 0.0})
+                cur += timedelta(days=1)
 
+        elif escala == "Mensal":
+            # inicio_python and fim_python are date objects representing first day of month (user provided)
+            cur_year = inicio_python.year
+            cur_month = inicio_python.month
+            end_year = fim_python.year
+            end_month = fim_python.month
+            while (cur_year, cur_month) <= (end_year, end_month):
+                inicio = ee.Date.fromYMD(cur_year, cur_month, 1)
+                fim = inicio.advance(1, 'month')
+                img = obter_soma_periodo(info, inicio, fim)
+                rr = img.reduceRegion(ee.Reducer.mean(), geometry, info['scale']).getInfo()
+                val = None
+                if rr:
+                    val = list(rr.values())[0]
+                label = f"{cur_year}-{cur_month:02d}"
+                resultados.append({'date': label, 'dataset': info['name'], 'value': val or 0.0})
+                # advance month
+                if cur_month == 12:
+                    cur_month = 1
+                    cur_year += 1
+                else:
+                    cur_month += 1
 
+        elif escala == "Anual":
+            for ano in range(inicio_python, fim_python + 1):
+                inicio = ee.Date.fromYMD(ano, 1, 1)
+                fim = inicio.advance(1, 'year')
+                img = obter_soma_periodo(info, inicio, fim)
+                rr = img.reduceRegion(ee.Reducer.mean(), geometry, info['scale']).getInfo()
+                val = None
+                if rr:
+                    val = list(rr.values())[0]
+                resultados.append({'date': str(ano), 'dataset': info['name'], 'value': val or 0.0})
+    except Exception as e:
+        # devolve resultados parciais e loga no streamlit
+        st.warning(f"Erro ao gerar séries para {info['name']}: {e}")
+    return resultados
 
 # --- MODOS DE ANÁLISE (LÓGICA PRINCIPAL) ---
 
@@ -189,10 +242,15 @@ def processar_comparacao(modo, **kwargs):
 st.sidebar.title('Menu de Comparação')
 st.sidebar.info("Selecione a escala temporal e o período. Os mapas das bases de dados GSMAP, CHIRPS e IMERG serão exibidos lado a lado.")
 
-modo_selecionado = st.sidebar.radio(
-    "Escolha a Escala Temporal:",
-    ["Diário", "Mensal", "Anual"]
-)
+# nova opção: escolha entre Mapas e Gráfico
+visualizacao = st.sidebar.radio("Visualização:", ["Mapas", "Gráfico"])
+
+modos = {'Diário': 'Diário', 'Mensal': 'Mensal', 'Anual': 'Anual'}
+
+# modo_selecionado = st.sidebar.radio(
+#     "Escolha a Escala Temporal:",
+#     list(modos.keys())
+# )
 
 st.sidebar.header("Filtros de Período")
 
@@ -200,31 +258,142 @@ st.sidebar.header("Filtros de Período")
 ANO_INICIAL_GLOBAL = min(d['start_year'] for d in DATASETS.values())
 ANO_ATUAL = date.today().year
 
-if modo_selecionado == "Diário":
-    data_selecionada = st.sidebar.date_input(
-        "Data",
-        max_value=date.today() - timedelta(days=1),
-        value=date.today() - timedelta(days=2)
-    )
-    if st.sidebar.button("Gerar Mapas", use_container_width=True):
-        processar_comparacao("Diário", data_sel=data_selecionada)
+# # inputs de localização para o gráfico (ponto + raio)
+# st.sidebar.markdown("### Local para séries (para gráfico)")
+# lat = st.sidebar.number_input("Latitude", value=-19.0, format="%.6f")
+# lon = st.sidebar.number_input("Longitude", value=-60.0, format="%.6f")
+# raio_km = st.sidebar.number_input("Raio (km)", value=10, min_value=1)
 
-elif modo_selecionado == "Mensal":
-    mes_passado = date.today().replace(day=1) - timedelta(days=1)
-    
-    ano_selecionado = st.sidebar.selectbox("Ano", range(ANO_INICIAL_GLOBAL, ANO_ATUAL + 1), index=range(ANO_INICIAL_GLOBAL, ANO_ATUAL + 1).index(mes_passado.year))
-    
-    meses_nomes = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho",
-                   "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"]
-    mes_selecionado_idx = st.sidebar.selectbox("Mês", range(1,13), format_func=lambda m: meses_nomes[m-1], index=mes_passado.month-1)
-    
-    if st.sidebar.button("Gerar Mapas", use_container_width=True):
-        processar_comparacao("Mensal", ano=ano_selecionado, mes_idx=mes_selecionado_idx, meses=meses_nomes)
+# botão unificado
+if visualizacao == "Mapas":
+    modo_selecionado = st.sidebar.radio(
+    "Escolha a Escala Temporal:",
+    list(modos.keys())
+)
+    if modo_selecionado == "Diário":
+        data_selecionada = st.sidebar.date_input(
+            "Data",
+            max_value=date.today() - timedelta(days=1),
+            value=date.today() - timedelta(days=2)
+        )
+        if st.sidebar.button("Gerar Mapas", use_container_width=True):
+            processar_comparacao("Diário", data_sel=data_selecionada)
 
-elif modo_selecionado == "Anual":
-    ultimo_ano_completo = ANO_ATUAL - 1
-    ano_selecionado = st.sidebar.selectbox("Ano", range(ANO_INICIAL_GLOBAL, ultimo_ano_completo + 1), index=range(ANO_INICIAL_GLOBAL, ultimo_ano_completo + 1).index(ultimo_ano_completo))
-    if st.sidebar.button("Gerar Mapas", use_container_width=True):
-        processar_comparacao("Anual", ano=ano_selecionado)
-        st.sidebar.warning('Atenção: alguns plots podem demorar um pouco para carregar devido ao volume de dados anual.')
+    elif modo_selecionado == "Mensal":
+        mes_passado = date.today().replace(day=1) - timedelta(days=1)
+        
+        ano_selecionado = st.sidebar.selectbox("Ano", range(ANO_INICIAL_GLOBAL, ANO_ATUAL + 1), index=range(ANO_INICIAL_GLOBAL, ANO_ATUAL + 1).index(mes_passado.year))
+        
+        meses_nomes = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho",
+                       "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"]
+        mes_selecionado_idx = st.sidebar.selectbox("Mês", range(1,13), format_func=lambda m: meses_nomes[m-1], index=mes_passado.month-1)
+        
+        if st.sidebar.button("Gerar Mapas", use_container_width=True):
+            processar_comparacao("Mensal", ano=ano_selecionado, mes_idx=mes_selecionado_idx, meses=meses_nomes)
 
+    elif modo_selecionado == "Anual":
+        ultimo_ano_completo = ANO_ATUAL - 1
+        ano_selecionado = st.sidebar.selectbox("Ano", range(ANO_INICIAL_GLOBAL, ultimo_ano_completo + 1), index=range(ANO_INICIAL_GLOBAL, ultimo_ano_completo + 1).index(ultimo_ano_completo))
+        if st.sidebar.button("Gerar Mapas", use_container_width=True):
+            processar_comparacao("Anual", ano=ano_selecionado)
+            st.sidebar.warning('Atenção: alguns plots podem demorar um pouco para carregar devido ao volume de dados anual.')
+
+else:  # Gráfico
+    modo_selecionado = st.sidebar.radio( "Escolha a Escala Temporal:",('Diário', 'Mensal'))
+
+    # inputs de período para gerar séries temporais
+    
+    # inputs de localização para o gráfico (ponto + raio)
+    st.sidebar.markdown("### Local para séries (para gráfico)")
+    lat = st.sidebar.number_input("Latitude", value=-22.424808, format="%.6f")
+    lon = st.sidebar.number_input("Longitude", value=-45.462025, format="%.6f")
+    raio_km = st.sidebar.number_input("Raio (km)", value=10, min_value=1)
+    
+
+    
+    if modo_selecionado == "Diário":
+        start_date = st.sidebar.date_input("Data inicial", value=date.today() - timedelta(days=2), max_value=date.today() - timedelta(days=1))
+        end_date = st.sidebar.date_input("Data final", value=date.today() - timedelta(days=1), min_value=start_date, max_value=date.today() - timedelta(days=1))
+    elif modo_selecionado == "Mensal":
+        meses_nomes = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho",
+                       "Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"]
+        start_year = st.sidebar.selectbox("Ano início", range(ANO_INICIAL_GLOBAL, ANO_ATUAL + 1), index=0)
+        start_month = st.sidebar.selectbox("Mês início", range(1,13), format_func=lambda m: meses_nomes[m-1], index=0)
+        end_year = st.sidebar.selectbox("Ano fim", range(ANO_INICIAL_GLOBAL, ANO_ATUAL + 1), index=min(5, ANO_ATUAL-ANO_INICIAL_GLOBAL))
+        end_month = st.sidebar.selectbox("Mês fim", range(1,13), format_func=lambda m: meses_nomes[m-1], index=11)
+        # constrói datas Python representando primeiro dia dos meses
+        start_date = date(start_year, start_month, 1)
+        end_date = date(end_year, end_month, 1)
+        
+    else:  # Anual
+        start_year = st.sidebar.selectbox("Ano início", range(ANO_INICIAL_GLOBAL, ANO_ATUAL), index=0)
+        end_year = st.sidebar.selectbox("Ano fim", range(ANO_INICIAL_GLOBAL, ANO_ATUAL), index=min(5, ANO_ATUAL-ANO_INICIAL_GLOBAL-1))
+        start_date = start_year
+        end_date = end_year
+
+    if st.sidebar.button("Gerar Gráfico", use_container_width=True):
+        # constrói geometry
+        geom = ee.Geometry.Point([float(lon), float(lat)]).buffer(int(raio_km) * 1000)
+        todas_series = []
+        with st.spinner("Gerando séries... isso pode demorar conforme o tamanho do período"):
+            for nome_dataset in DATASETS_PARA_COMPARAR:
+                info = DATASETS[nome_dataset]
+                series = obter_series_temporais(info, modo_selecionado, start_date, end_date, geom)
+                todas_series.extend(series)
+
+        if not todas_series:
+            st.error("Nenhum dado retornado para o período/posição selecionados.")
+        else:
+            df = pd.DataFrame(todas_series)
+            # converter coluna date para datetime conforme escala
+            if modo_selecionado == "Diário":
+                df['date'] = pd.to_datetime(df['date'])
+            elif modo_selecionado == "Mensal":
+                df['date'] = pd.to_datetime(df['date'] + "-01")
+            else:
+                # anual: usa primeiro dia do ano
+                df['date'] = pd.to_datetime(df['date'] + "-01-01")
+
+
+            titulo_grafico = f"Série Temporal de Precipitação ({modo_selecionado})"
+            selecao_legenda = alt.selection_point(fields=['dataset'], bind='legend')
+
+            chart = alt.Chart(df).mark_line(
+                strokeWidth=2, # Linha mais grossa
+                point={'filled': False, 'fill': 'white', 'size': 40}
+            ).encode(
+                # Eixo X (Data)
+                x=alt.X('date:T', title='Período', axis=alt.Axis(format='%d/%m/%Y')),
+                
+                # Eixo Y (Precipitação)
+                y=alt.Y('value:Q', title='Precipitação (mm)', axis=alt.Axis(format='.1f')),
+                
+                # Cor baseada na fonte de dados (traduzido)
+                color=alt.Color('dataset:N', title='Fonte de Dados'),
+                
+                # Opacidade ligada à seleção da legenda
+                opacity=alt.condition(selecao_legenda, alt.value(1.0), alt.value(0.2)),
+                
+                # Tooltip (caixa de informação) traduzido e formatado
+                tooltip=[
+                    alt.Tooltip('dataset:N', title='Fonte'),
+                    alt.Tooltip('date:T', title='Data', format='%d/%m/%Y'),
+                    alt.Tooltip('value:Q', title='Precip. (mm)', format='.2f')
+                ]
+            ).add_selection(
+                selecao_legenda
+            ).properties(
+                title=titulo_grafico,
+                height=500
+            ).configure_title(
+                fontSize=20,
+                anchor='start'
+            ).configure_legend(
+                orient='bottom', # Move a legenda para baixo
+                titleFontSize=14,
+                labelFontSize=12
+            ).interactive() # Habilita zoom e pan
+
+            # --- Exibição no Streamlit ---
+            st.header(f"Comparação Gráfica - {modo_selecionado}")
+            st.altair_chart(chart, use_container_width=True)

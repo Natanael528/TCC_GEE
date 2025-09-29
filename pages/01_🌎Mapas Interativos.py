@@ -18,7 +18,7 @@ with tempfile.NamedTemporaryFile(mode='w+', suffix='.json', delete=False) as f:
     
 st.set_page_config(
     layout='wide',
-    page_title='HydroGEE Analytics | Início',
+    page_title='AquaGEE Analytics | Início',
     initial_sidebar_state='expanded',
     menu_items={
         'About': 'Aplicativo desenvolvido por Natanael Silva Oliveira para o TCC de Ciências Atmosféricas - UNIFEI.',
@@ -414,7 +414,7 @@ info_dataset = DATASETS[dataset_selecionado]
 st.sidebar.divider()
 
 modos = {
-    "Última Imagem disponível": ultima_imagem,
+    "Instantâneo": ultima_imagem,
     "Selecionar Imagem por Data": selecionar_imagem,
     "Acumulado Diário": acumulado_diario,
     "Acumulado Mensal": acumulado_mensal,
@@ -424,7 +424,7 @@ modos = {
 # CHIRPS Daily não é ideal para "Última Imagem" por ter latência de ~2 dias
 # e o Pentad (5 dias) não representa uma "imagem instantânea".
 if dataset_selecionado == "CHIRPS":
-    modos.pop("Última Imagem disponível", None)
+    modos.pop("Instantâneo", None)
     modos.pop("Selecionar Imagem por Data", None)
 
 modo_selecionado = st.sidebar.radio("**Escala Temporal:**", list(modos.keys()))

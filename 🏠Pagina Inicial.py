@@ -8,7 +8,7 @@ import tempfile
 # --- Configuração da Página e Estilo ---
 st.set_page_config(
     layout='wide',
-    page_title='HydroGEE Analytics | Início',
+    page_title='AquaGEE Analytics | Início',
     initial_sidebar_state='collapsed',
     menu_items={
         'About': 'Aplicativo desenvolvido por Natanael Silva Oliveira para o TCC de Ciências Atmosféricas - UNIFEI.',
@@ -81,7 +81,7 @@ def create_brazil_annual_map():
 # --- ESTRUTURA DA PÁGINA INICIAL ---
 
 # --- 1. Seção de Apresentação (Hero Section) ---
-st.title("💧 HydroGEE Analytics")
+st.title("💧 AquaGEE Analytics")
 st.markdown("##### Sua plataforma para análise de dados de precipitação com o poder do Google Earth Engine.")
 st.write("---")
 
@@ -89,7 +89,7 @@ col1, col2 = st.columns([0.6, 0.4])
 
 with col1:
     st.markdown("""
-    O **HydroGEE Analytics** oferece ferramentas intuitivas para explorar, visualizar e analisar padrões de chuva em todo o território brasileiro.
+    O * AquaGEE Analytics** oferece ferramentas intuitivas para explorar, visualizar e analisar padrões de chuva em todo o território brasileiro.
     Utilizando dados de satélite processados em nuvem, você pode gerar mapas, séries temporais e comparações de forma rápida e eficiente.
 
     Navegue pelas nossas ferramentas para:
