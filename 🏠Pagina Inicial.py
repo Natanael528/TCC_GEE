@@ -148,7 +148,7 @@ with c3:
 st.write("---")
 
 # --- 3. Seção sobre as Fontes de Dados ---
-st.header("Fontes de Dados Confiáveis")
+st.header("Fontes de Dados")
 st.write("Utilizamos produtos de precipitação globalmente reconhecidos e validados, processados pelo Google Earth Engine.")
 
 d1, d2, d3 = st.columns(3)
@@ -160,9 +160,10 @@ with d1:
         O *Climate Hazards Group InfraRed Precipitation with Station data* (CHIRPS) é um conjunto de dados de precipitação com mais de *40 anos* de registros contínuos. Ele combina observações de satélite com medições em milhares de estações pluviométricas espalhadas pelo globo, oferecendo informações consistentes para análises climatológicas e estudos de longo prazo. Sua resolução espacial é de aproximadamente 5,5 km, e a série histórica cobre o período de 1981 até o presente.
 
         Um detalhe importante: o CHIRPS disponibiliza dados apenas sobre os continentes, e não sobre os oceanos. Isso acontece porque a principal utilidade do banco é monitorar impactos da chuva em áreas habitadas, agricultura e recursos hídricos, que estão no continente. Além disso, a integração com estações meteorológicas em solo — um dos diferenciais do CHIRPS — só é possível em terra firme, já que não existem redes equivalentes em mar aberto. Para precipitação sobre oceanos, outros produtos satelitais, como o GPM (Global Precipitation Measurement), são mais indicados.
-        - **Resolução Espacial:** ~5.5 km
+        - **Resolução Espacial:** ~5.5 km (colocar em km)##########################################################################3
         - **Disponibilidade:** 1981-Presente
         - **Referência:** [CHIRPS](https://developers.google.com/earth-engine/datasets/catalog/UCSB-CHG_CHIRPS_DAILY?hl=pt-br#citations)
+        - mais informações: [CHG](https://www.chc.ucsb.edu/data/chirps)####################
         """)
 
 with d2:
