@@ -414,7 +414,7 @@ info_dataset = DATASETS[dataset_selecionado]
 st.sidebar.divider()
 
 modos = {
-    "Instantâneo": ultima_imagem,
+    "Última imagem": ultima_imagem,
     "Selecionar Imagem por Data": selecionar_imagem,
     "Acumulado Diário": acumulado_diario,
     "Acumulado Mensal": acumulado_mensal,
