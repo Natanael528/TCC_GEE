@@ -160,10 +160,10 @@ with d1:
         O *Climate Hazards Group InfraRed Precipitation with Station data* (CHIRPS) é um conjunto de dados de precipitação com mais de *40 anos* de registros contínuos. Ele combina observações de satélite com medições em milhares de estações pluviométricas espalhadas pelo globo, oferecendo informações consistentes para análises climatológicas e estudos de longo prazo. Sua resolução espacial é de aproximadamente 5,5 km, e a série histórica cobre o período de 1981 até o presente.
 
         Um detalhe importante: o CHIRPS disponibiliza dados apenas sobre os continentes, e não sobre os oceanos. Isso acontece porque a principal utilidade do banco é monitorar impactos da chuva em áreas habitadas, agricultura e recursos hídricos, que estão no continente. Além disso, a integração com estações meteorológicas em solo — um dos diferenciais do CHIRPS — só é possível em terra firme, já que não existem redes equivalentes em mar aberto. Para precipitação sobre oceanos, outros produtos satelitais, como o GPM (Global Precipitation Measurement), são mais indicados.
-        - **Resolução Espacial:** ~5.5 km (colocar em km)##########################################################################3
+        - **Resolução Espacial:** 5566 metros
         - **Disponibilidade:** 1981-Presente
         - **Referência:** [CHIRPS](https://developers.google.com/earth-engine/datasets/catalog/UCSB-CHG_CHIRPS_DAILY?hl=pt-br#citations)
-        - mais informações: [CHG](https://www.chc.ucsb.edu/data/chirps)####################
+        - **Mais informações:** [CHG](https://www.chc.ucsb.edu/data/chirps)
         """)
 
 with d2:
@@ -173,9 +173,10 @@ with d2:
         O *Integrated Multi-satellitE Retrievals for GPM* (IMERG), desenvolvido pela NASA dentro da missão Global Precipitation Measurement (GPM), é um dos principais produtos globais de precipitação por satélite. Ele oferece estimativas de chuva com alta resolução temporal, atualizadas a cada *30 minutos*, o que o torna ideal para o acompanhamento de eventos de curta duração, como tempestades intensas, enchentes repentinas e monitoramento quase em tempo real. Sua resolução espacial é de cerca de *10 km*, cobrindo praticamente todo o globo.
 
         Ao contrário do CHIRPS, que se concentra nos continentes, o IMERG fornece dados tanto sobre terra quanto sobre os oceanos, já que se baseia em uma constelação de satélites de micro-ondas e infravermelho capazes de observar a atmosfera globalmente. Isso o torna especialmente útil para o estudo de sistemas meteorológicos de grande escala, como ciclones tropicais, frentes frias e zonas de convergência.
-        - **Resolução Espacial:** ~10 km
+        - **Resolução Espacial:** 11132 metros
         - **Disponibilidade:** 2000-Presente
         - **Referência:** [IMERG](https://developers.google.com/earth-engine/datasets/catalog/NASA_GPM_L3_IMERG_V07?hl=pt-br#citations)
+        - **Mais informações:** [GPM](https://gpm.nasa.gov/)
         """)
 
 with d3:
@@ -185,9 +186,10 @@ with d3:
         O *Global Satellite Mapping of Precipitation* (GSMaP), desenvolvido pela JAXA em parceria com o projeto GPM, fornece estimativas de precipitação com resolução horária e aproximadamente 10 km de detalhamento espacial. Um de seus grandes diferenciais é a rapidez na disponibilização dos dados, o que o torna muito útil para o acompanhamento de sistemas convectivos, como tempestades tropicais e eventos intensos de curta duração.
 
         Assim como o IMERG, o GSMaP oferece cobertura global, incluindo tanto continentes quanto oceanos, graças à constelação de satélites de micro-ondas e infravermelho que alimentam o sistema. Essa abrangência é essencial para aplicações em regiões remotas e em áreas oceânicas, permitindo o monitoramento de ciclones, zonas de convergência e sistemas de grande escala. Além disso, sua agilidade na atualização torna o GSMaP uma referência em contextos de monitoramento operacional.
-        - **Resolução Espacial:** ~10 km
+        - **Resolução Espacial:** 11132 metros
         - **Disponibilidade:** 2000-Presente
         - **Referência:** [GSMaP](https://developers.google.com/earth-engine/datasets/catalog/JAXA_GPM_L3_GSMaP_v8_operational?hl=pt-br#citations)
+        - **Mais informações:** [JAXA](https://sharaku.eorc.jaxa.jp/GSMaP_NOW/index_j.htm)
         """)
 
 # --- 4. Seção de Instruções ---

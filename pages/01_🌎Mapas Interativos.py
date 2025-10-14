@@ -36,7 +36,7 @@ with open('style.css')as f:
 PALETA_PRECIPITACAO = ['1621a2', '03ffff', '13ff03', 'efff00', 'ffb103', 'ff2300']
 MESES_NOME = {i: calendar.month_name[i] for i in range(1, 13)}
 
-# Dicionário de datasets aprimorado com parâmetros de visualização
+# Dicionário de datasets aprimorado com parâmetros de visualização ################ESCALA DA PALETA MM/DIA
 DATASETS = {
     'CHIRPS': {
         'id': 'UCSB-CHG/CHIRPS/DAILY',
