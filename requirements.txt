@@ -1,12 +1,10 @@
 streamlit == 1.45.1
-folium
-pandas
-plotly
-geopandas
-googlemaps
-earthengine-api
-geemap
-streamlit_folium
-setuptools
-jason
+folium == 0.17.0
+pandas == 2.3.3
+plotly == 5.23.0
+geopandas == 1.0.0
+earthengine-api == 1.5.11
+geemap == 0.35.3
+streamlit_folium == 0.22.0
+setuptools == 75.1.0
 
