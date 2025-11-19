@@ -168,7 +168,7 @@ with d1:
 
 with d2:
     with st.container(border=True):
-        st.subheader("GPM IMERG")
+        st.subheader("IMERG")
         st.write("""
         O *Integrated Multi-satellitE Retrievals for GPM* (IMERG), desenvolvido pela NASA dentro da missão Global Precipitation Measurement (GPM), é um dos principais produtos globais de precipitação por satélite. Ele oferece estimativas de chuva com alta resolução temporal, atualizadas a cada *30 minutos*, o que o torna ideal para o acompanhamento de eventos de curta duração, como tempestades intensas, enchentes repentinas e monitoramento quase em tempo real. Sua resolução espacial é de cerca de *10 km*, cobrindo praticamente todo o globo.
 
@@ -181,7 +181,7 @@ with d2:
 
 with d3:
     with st.container(border=True):
-        st.subheader("GPM GSMaP")
+        st.subheader("GSMaP")
         st.write("""
         O *Global Satellite Mapping of Precipitation* (GSMaP), desenvolvido pela JAXA em parceria com o projeto GPM, fornece estimativas de precipitação com resolução horária e aproximadamente 10 km de detalhamento espacial. Um de seus grandes diferenciais é a rapidez na disponibilização dos dados, o que o torna muito útil para o acompanhamento de sistemas convectivos, como tempestades tropicais e eventos intensos de curta duração.
 
