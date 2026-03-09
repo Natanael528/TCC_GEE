@@ -87,7 +87,6 @@ DATASETS = {
 @st.cache_data
 
 def get_ultima_data_disponivel(info, colecao_id_key='id'):
-    """Busca a última data disponível de forma robusta, expandindo o intervalo caso necessário."""
     hoje = date.today()
     dias_busca = [40, 90, 180, 365, 1000]  # tentar intervalos crescentes
 
@@ -147,17 +146,21 @@ def ultima_imagem(info):
 
     # Buscar imagens nos últimos 40 dias até a última data disponível
     inicio_busca = ultima_data - timedelta(days=40)
+
+
+    # ------------ >Função do Earth Engine para obter a coleção de imagens <--------------
     colecao = (
         ee.ImageCollection(info['id'])
-        .filterDate(str(inicio_busca), str(ultima_data + timedelta(days=1)))
+        .filterDate(str(inicio_busca), str(ultima_data + timedelta(days=1))) 
         .sort('system:time_start', False)
     )
-
+    # <------------------------------------------------------------------------------------->
+    
+    
     imagens_disponiveis = colecao.aggregate_array("system:time_start").getInfo()
     if not imagens_disponiveis:
         st.warning("Nenhuma imagem encontrada.")
         return
-
     else:
         # Última imagem automaticamente
         img = colecao.first()
@@ -165,7 +168,6 @@ def ultima_imagem(info):
             st.warning("Nenhuma imagem encontrada.")
             return
         data_img = ee.Date(img.get("system:time_start")).format("dd/MM/YYYY - HH:mm").getInfo()
-
     # Visualização
     vis = info['vis_params']['ultima_imagem']
     imagem_final = (
@@ -173,7 +175,6 @@ def ultima_imagem(info):
         .multiply(info['multiplier'])
         .updateMask(img.select(info['band']).gt(vis['min']))
     )
-
     desenhar_mapa(
         imagem_final,
         vis,

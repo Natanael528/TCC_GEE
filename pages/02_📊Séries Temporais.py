@@ -124,7 +124,7 @@ def _ensure_date_and_precip(df, band_name=None, multiplier=1):
     df = df.dropna(subset=['precip']).sort_values('date').reset_index(drop=True)
     return df[['date', 'precip']]
 
-# ---------- Função diária (robusta e sem getRegion) ----------
+# ---------- Função diária ----------
 def get_daily_precip(collection, roi, start_year, end_year, band_name, scale, multiplier):
     """
     Calcula série diária reduzindo cada imagem sobre a ROI.

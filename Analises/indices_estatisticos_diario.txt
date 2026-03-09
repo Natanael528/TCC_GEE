@@ -1,0 +1,19 @@
+Tabela de Índices Estatísticos: Estação vs. Satélite
+============================================================
+
+                       ESTACAO SATELITE   N VIES(mm/dia) RQME(mm/dia) BIAS(mm/dia) CORRELACAO(r) WILLMOTT(d)
+     BELO HORIZONTE (PAMPULHA)   CHIRPS 269        -4.70        15.21        -0.29          0.57        0.69
+     BELO HORIZONTE (PAMPULHA)   IMERGE 269        -2.53        14.36        -0.16          0.60        0.72
+     BELO HORIZONTE (PAMPULHA)    GSMAP 269        -4.58        16.84        -0.28          0.52        0.70
+                      BRASILIA   CHIRPS 296        -2.97        13.92        -0.24          0.34        0.56
+                      BRASILIA   IMERGE 296        -2.81        12.89        -0.22          0.46        0.64
+                      BRASILIA    GSMAP 296        -4.80        16.74        -0.38          0.29        0.52
+                        MANAUS   CHIRPS 413        -6.03        16.35        -0.37          0.48        0.64
+                        MANAUS   IMERGE 413        -5.99        14.89        -0.36          0.60        0.69
+                        MANAUS    GSMAP 413        -3.99        18.60        -0.24          0.52        0.70
+PORTO ALEGRE - JARDIM BOTANICO   CHIRPS 312        -5.62        16.69        -0.34          0.55        0.70
+PORTO ALEGRE - JARDIM BOTANICO   IMERGE 312        -0.93        12.46        -0.06          0.77        0.87
+PORTO ALEGRE - JARDIM BOTANICO    GSMAP 312         5.65        26.19         0.34          0.61        0.70
+                      SALVADOR   CHIRPS 475         0.19        21.20         0.02          0.50        0.67
+                      SALVADOR   IMERGE 475        -6.08        14.63        -0.50          0.65        0.76
+                      SALVADOR    GSMAP 475        -8.11        16.78        -0.66          0.55        0.67
