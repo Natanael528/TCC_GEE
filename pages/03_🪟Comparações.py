@@ -92,7 +92,8 @@ def desenhar_mapa_em_coluna(coluna, image, vis_params, titulo, legenda):
     """Renderiza um mapa geemap dentro de uma coluna específica do Streamlit."""
     with coluna:
         st.subheader(titulo)
-        mapa = geemap.Map(center=[-19, -60], zoom=3, tiles='cartodbdark_matter')
+        url_carto = "https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png?key=cb1_3oi9_1_2191ae0ee3e74c44c0d78e41" 
+        mapa = geemap.Map(center=[-19, -60], zoom=3, tiles=url_carto, attr="CartoDB")
         
         # Adiciona uma verificação para garantir que a imagem não está vazia
         try:
