@@ -110,12 +110,20 @@ def get_ultima_data_disponivel(info, colecao_id_key='id'):
 
     return None
 
+# def desenhar_mapa(image, vis_params, titulo, legenda):
+#     """Função para renderizar o mapa no Streamlit."""
+#     st.write(f"**Exibindo:** {titulo}")
+#     mapa = geemap.Map(center=[-15, -55], zoom=4, tiles='cartodbdark_matter')
+#     mapa.addLayer(image, vis_params, titulo)
+#     mapa.add_colorbar(vis_params, label=legenda,background_color='white')
+#     mapa.to_streamlit(width=1920, height=800)
+
 def desenhar_mapa(image, vis_params, titulo, legenda):
-    """Função para renderizar o mapa no Streamlit."""
     st.write(f"**Exibindo:** {titulo}")
-    mapa = geemap.Map(center=[-15, -55], zoom=4, tiles='cartodbdark_matter')
+    url_carto = "https://basemaps.cartocdn.com/rastertiles/dark_all/{z}/{x}/{y}.png?key=cb1_3oi9_1_2191ae0ee3e74c44c0d78e41" # insere mapa dark matter com a api key
+    mapa = geemap.Map(center=[-15, -55], zoom=4, tiles=url_carto, attr="CartoDB")
     mapa.addLayer(image, vis_params, titulo)
-    mapa.add_colorbar(vis_params, label=legenda,background_color='white')
+    mapa.add_colorbar(vis_params, label=legenda, background_color='white')
     mapa.to_streamlit(width=1920, height=800)
 
 def soma_periodo(info, inicio, fim, para_agregados=False):
